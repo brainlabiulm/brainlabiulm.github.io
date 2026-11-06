@@ -19,6 +19,8 @@ npm install
 npm run build
 ```
 
+Su Windows puoi avviare `build-site.cmd` con un doppio clic: controlla GitHub CLI, installa le dipendenze se mancano e lancia il build. Non pubblica automaticamente su GitHub; al termine le pagine cifrate si trovano in `docs/`.
+
 Lo script chiede la password due volte senza mostrarla, controlla che sia lunga almeno 16 caratteri e genera le pagine cifrate in `docs/`. Puoi accedere una volta e usare “Ricordami” per aprire le altre pagine dello stesso sito senza reinserirla a ogni click.
 
 Le pagine sono organizzate in `private/pages/<nome-cartella>/`; il catalogo è `private/pages/pages.json` (puoi partire da `pages.example.json`). Per esempio:
