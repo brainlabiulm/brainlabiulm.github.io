@@ -12,7 +12,7 @@ Questa soluzione usa una sola password condivisa: non identifica i singoli visit
 
 ## Preparazione e generazione
 
-Richiede Node.js 16 o successivo. Nella cartella del progetto:
+Richiede Node.js 16 o successivo e GitHub CLI (`gh`). Nella cartella del progetto:
 
 ```powershell
 npm install
@@ -21,7 +21,7 @@ npm run build
 
 Lo script chiede la password due volte senza mostrarla, controlla che sia lunga almeno 16 caratteri e genera le pagine cifrate in `docs/`. Puoi accedere una volta e usare “Ricordami” per aprire le altre pagine dello stesso sito senza reinserirla a ogni click.
 
-Per aggiungere pagine, copia i file `.html` dentro `private/` mantenendo la struttura delle sottocartelle e registra ogni pagina nell'array `private/pages.json` (puoi copiare `pages.example.json` come modello). Per esempio:
+Per aggiungere una pagina, registra una voce nell'array `private/pages.json` (puoi copiare `pages.example.json` come modello). Per esempio:
 
 ```json
 [
@@ -33,13 +33,13 @@ Per aggiungere pagine, copia i file `.html` dentro `private/` mantenendo la stru
 ]
 ```
 
-`nomeLink` è l'etichetta mostrata nel portale; `nomePagina` è il percorso relativo del file HTML presente in `private/`; `repoGithub` indica la repository sorgente. Il build controlla che il file HTML esista e genera automaticamente il link nella pagina iniziale. `pages.json` si trova dentro `private/` ed è escluso dalla repository pubblica insieme alle pagine in chiaro.
+`nomeLink` è l'etichetta mostrata nel portale; `nomePagina` è il percorso e il nome con cui pubblicare la pagina; `repoGithub` è l'URL della repository sorgente. A ogni build, Git scarica la repository in una cartella temporanea, sceglie `index.html` oppure l'unico HTML alla radice, e copia l'HTML e gli script locali necessari sotto `private/`. Se la repository contiene più HTML alla radice o l'HTML iniziale è in una sottocartella, aggiungi il campo facoltativo `fileSorgente`, per esempio `"fileSorgente": "tobii-check.html"`. Il build aggiorna il link nella pagina iniziale. `pages.json` e i sorgenti scaricati restano in `private/`, esclusi dalla repository pubblica.
 
-Per ora il JSON registra le repository ma non le scarica automaticamente: copia prima i file della pagina dentro `private/`. Per sincronizzare repository private senza copie manuali bisogna configurare un token GitHub con accesso in sola lettura e una procedura di build automatica; il token va conservato come secret e mai scritto nel JSON.
+Il build usa GitHub CLI per scaricare i repository, rimuove dai sorgenti ogni stylesheet e blocco `<style>`, e collega tutte le pagine soltanto ad `assets/site.css`, copiato in `docs/css/site.css`. I CSS delle repository sorgente non vengono scaricati. Per le repository private, accedi a GitHub CLI con un account autorizzato: `gh auth status` controlla lo stato; se serve, `gh auth login --hostname github.com --web` avvia l'accesso dal browser. Se hai più account, seleziona quello autorizzato con `gh auth switch --hostname github.com --user NOME_UTENTE`. Non inserire token o password in `pages.json`.
 
 Il foglio di stile comune è `assets/site.css`: viene pubblicato come `docs/css/site.css` e collegato automaticamente a ogni HTML cifrato. Puoi quindi copiare HTML e JavaScript senza portare un CSS per ogni pagina. Gli eventuali link HTML a fogli di stile locali e i blocchi `<style>` vengono rimossi durante la generazione; le pagine useranno lo stile comune. Se una pagina richiede regole particolari, possiamo aggiungerle al foglio comune.
 
-Gli script locali `.js` e `.mjs` referenziati nell'HTML vengono incorporati nella pagina prima della cifratura, quindi non vengono pubblicati come file separati. Gli script remoti restano remoti. I moduli JavaScript con import locali devono essere uniti in un singolo file prima del build. I formati diversi da HTML e JavaScript (PDF, immagini, JSON e così via) sono ignorati per non pubblicarli per errore; se una pagina usa tali risorse, andranno gestite separatamente.
+Gli script locali `.js` e `.mjs` referenziati nell'HTML vengono incorporati nella pagina prima della cifratura, quindi non vengono pubblicati come file separati. Gli script remoti restano remoti. I moduli JavaScript con import locali devono essere uniti in un singolo file prima del build. I formati diversi da HTML e JavaScript (PDF, immagini, JSON e così via) non vengono copiati automaticamente.
 
 ## Pubblicazione su GitHub Pages
 

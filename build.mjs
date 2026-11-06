@@ -7,10 +7,12 @@ import {
   readFileSync,
   writeFileSync,
   renameSync,
+  mkdtempSync,
 } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { stdin, stdout } from "node:process";
+import { tmpdir } from "node:os";
 
 const root = process.cwd();
 const sourceDir = resolve(root, "private");
@@ -31,7 +33,7 @@ function escapeHtml(value) {
   })[character]);
 }
 
-function readPageLinks(htmlFiles) {
+function readPageLinks() {
   if (!statSync(pagesConfig, { throwIfNoEntry: false })?.isFile()) {
     throw new Error("File `private/pages.json` mancante. Crealo con un array di pagine (anche vuoto: []).");
   }
@@ -44,14 +46,13 @@ function readPageLinks(htmlFiles) {
   }
   if (!Array.isArray(entries)) throw new Error("`private/pages.json` deve contenere un array JSON.");
 
-  const availablePages = new Set(htmlFiles.map((file) => relative(sourceDir, file).replaceAll("\\", "/")));
   const seenPaths = new Set();
   return entries.map((entry, index) => {
     const row = index + 1;
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
       throw new Error(`La voce ${row} di pages.json deve essere un oggetto.`);
     }
-    const { nomeLink, nomePagina, repoGithub } = entry;
+    const { nomeLink, nomePagina, repoGithub, fileSorgente } = entry;
     if (![nomeLink, nomePagina, repoGithub].every((value) => typeof value === "string" && value.trim())) {
       throw new Error(`La voce ${row} di pages.json richiede nomeLink, nomePagina e repoGithub.`);
     }
@@ -59,9 +60,6 @@ function readPageLinks(htmlFiles) {
     const pagePath = nomePagina.trim().replaceAll("\\", "/").replace(/^\.\//, "");
     if (pagePath.startsWith("/") || pagePath.split("/").includes("..") || !pagePath.toLowerCase().endsWith(".html")) {
       throw new Error(`nomePagina alla voce ${row} deve essere un percorso HTML relativo dentro private/ (es. tools/analisi.html).`);
-    }
-    if (!availablePages.has(pagePath)) {
-      throw new Error(`La pagina ${pagePath} indicata alla voce ${row} non esiste in private/.`);
     }
     if (pagePath.toLowerCase() === "index.html") {
       throw new Error(`La voce ${row} non può puntare a private/index.html.`);
@@ -78,10 +76,88 @@ function readPageLinks(htmlFiles) {
     } catch {
       throw new Error(`repoGithub alla voce ${row} deve essere un URL HTTPS GitHub.`);
     }
-    if (parsedRepo.protocol !== "https:" || parsedRepo.hostname !== "github.com") {
-      throw new Error(`repoGithub alla voce ${row} deve essere un URL HTTPS GitHub.`);
+    const repoParts = parsedRepo.pathname.split("/").filter(Boolean);
+    if (parsedRepo.protocol !== "https:" || parsedRepo.hostname !== "github.com" || repoParts.length !== 2) {
+      throw new Error(`repoGithub alla voce ${row} deve avere il formato https://github.com/utente/repository.`);
     }
-    return { nomeLink: nomeLink.trim(), nomePagina: pagePath, repoGithub: repoUrl };
+    let sourcePath = "";
+    if (fileSorgente !== undefined) {
+      if (typeof fileSorgente !== "string" || !fileSorgente.trim()) {
+        throw new Error(`fileSorgente alla voce ${row}, se presente, deve essere un percorso HTML relativo alla repository.`);
+      }
+      sourcePath = fileSorgente.trim().replaceAll("\\", "/");
+      if (sourcePath.startsWith("/") || sourcePath.split("/").includes("..") || !sourcePath.toLowerCase().endsWith(".html")) {
+        throw new Error(`fileSorgente alla voce ${row} deve essere un percorso HTML relativo alla repository.`);
+      }
+    }
+    return { nomeLink: nomeLink.trim(), nomePagina: pagePath, repoGithub: repoUrl, fileSorgente: sourcePath };
+  });
+}
+
+function isInside(directory, file) {
+  const path = relative(directory, file);
+  return path === "" || (!path.startsWith("..") && !isAbsolute(path));
+}
+
+function copyRepositoryPage(entry, checkoutDir) {
+  const rootIndex = ["index.html", "Index.html", "INDEX.HTML"]
+    .map((name) => join(checkoutDir, name))
+    .find((path) => statSync(path, { throwIfNoEntry: false })?.isFile());
+  const rootHtml = readdirSync(checkoutDir, { withFileTypes: true })
+    .filter((item) => item.isFile() && item.name.toLowerCase().endsWith(".html"))
+    .map((item) => join(checkoutDir, item.name));
+  const sourceHtml = entry.fileSorgente
+    ? resolve(checkoutDir, entry.fileSorgente)
+    : rootIndex ?? (rootHtml.length === 1 ? rootHtml[0] : null);
+
+  if (!sourceHtml || !isInside(checkoutDir, sourceHtml) || !statSync(sourceHtml, { throwIfNoEntry: false })?.isFile()) {
+    const candidates = rootHtml.map((file) => basename(file)).join(", ") || "nessun HTML alla radice";
+    throw new Error(
+      `Non riesco a scegliere l'HTML iniziale in ${entry.repoGithub} (${candidates}). Aggiungi "fileSorgente" alla voce di pages.json, per esempio "tobii-check.html".`,
+    );
+  }
+
+  const targetHtml = resolve(sourceDir, entry.nomePagina);
+  if (!isInside(sourceDir, targetHtml)) throw new Error(`Percorso pagina non valido: ${entry.nomePagina}.`);
+  mkdirSync(dirname(targetHtml), { recursive: true });
+  const html = readFileSync(sourceHtml, "utf8");
+
+  for (const tag of html.match(/<script\b[^>]*>\s*<\/script\s*>/gi) ?? []) {
+    const src = tag.match(/\bsrc\s*=\s*(["'])(.*?)\1/i)?.[2] ?? "";
+    if (!src || /^(?:https?:|\/\/|data:|blob:)/i.test(src)) continue;
+    const cleanSrc = src.split(/[?#]/, 1)[0];
+    const sourceScript = cleanSrc.startsWith("/")
+      ? resolve(checkoutDir, `.${cleanSrc}`)
+      : resolve(dirname(sourceHtml), cleanSrc);
+    if (!isInside(checkoutDir, sourceScript)) throw new Error(`Lo script ${src} esce dalla repository ${entry.repoGithub}.`);
+    if (!statSync(sourceScript, { throwIfNoEntry: false })?.isFile()) {
+      throw new Error(`Script locale non trovato nella repository ${entry.repoGithub}: ${src}.`);
+    }
+    const targetScript = cleanSrc.startsWith("/")
+      ? resolve(sourceDir, `.${cleanSrc}`)
+      : resolve(dirname(targetHtml), cleanSrc);
+    if (!isInside(sourceDir, targetScript)) throw new Error(`Percorso script non valido: ${src}.`);
+    mkdirSync(dirname(targetScript), { recursive: true });
+    copyFileSync(sourceScript, targetScript);
+  }
+
+  writeFileSync(targetHtml, html, "utf8");
+}
+
+function cloneAndStagePages(entries, workDir) {
+  entries.forEach((entry, index) => {
+    const checkoutDir = join(workDir, `repo-${index + 1}`);
+    const repoName = new URL(entry.repoGithub).pathname.replace(/^\//, "").replace(/\.git$/i, "");
+    stdout.write(`Recupero ${entry.repoGithub}\n`);
+    const result = spawnSync("gh", ["repo", "clone", repoName, checkoutDir, "--", "--depth", "1"], {
+      cwd: root,
+      stdio: "inherit",
+    });
+    if (result.error) throw new Error(`Impossibile avviare GitHub CLI per ${entry.repoGithub}: ${result.error.message}`);
+    if (result.status !== 0) {
+      throw new Error(`Download non riuscito per ${entry.repoGithub}. Esegui gh auth status e accedi con gh auth login usando un account autorizzato a leggere la repository.`);
+    }
+    copyRepositoryPage(entry, checkoutDir);
   });
 }
 
@@ -106,7 +182,8 @@ function collectFiles(directory) {
 
 function inlineLocalScripts(html, htmlFile) {
   let count = 0;
-  const transformed = html.replace(/<script\b([^>]*)>\s*<\/script\s*>/gi, (tag, attributes) => {
+  const deferredScripts = [];
+  let transformed = html.replace(/<script\b([^>]*)>\s*<\/script\s*>/gi, (tag, attributes) => {
     const srcMatch = attributes.match(/\bsrc\s*=\s*(["'])(.*?)\1/i);
     if (!srcMatch) return tag;
 
@@ -133,8 +210,19 @@ function inlineLocalScripts(html, htmlFile) {
     const inlineAttributes = attributes.replace(srcMatch[0], "").trim();
     const safeScript = script.replace(/<\/script/gi, "<\\/script");
     count += 1;
-    return `<script${inlineAttributes ? ` ${inlineAttributes}` : ""}>\n${safeScript}\n</script>`;
+    const inlineTag = `<script${inlineAttributes ? ` ${inlineAttributes}` : ""}>\n${safeScript}\n</script>`;
+    if (/\bdefer\b/i.test(attributes)) {
+      deferredScripts.push(inlineTag.replace(/\s+defer\b/i, ""));
+      return "";
+    }
+    return inlineTag;
   });
+  if (deferredScripts.length) {
+    const scripts = deferredScripts.join("\n");
+    transformed = /<\/body\s*>/i.test(transformed)
+      ? transformed.replace(/<\/body\s*>/i, `${scripts}\n</body>`)
+      : `${transformed}\n${scripts}`;
+  }
   return { html: transformed, count };
 }
 
@@ -192,21 +280,30 @@ if (!statSync(resolve(root, "package.json")).isFile()) {
   throw new Error("Esegui questo script dalla cartella principale del sito.");
 }
 
-let files;
-try {
-  files = collectFiles(sourceDir);
-} catch {
+if (!statSync(sourceDir, { throwIfNoEntry: false })?.isDirectory()) {
   throw new Error("Cartella `private` mancante. Crea `private/index.html` prima di generare il sito.");
 }
+if (!statSync(resolve(sourceDir, "index.html"), { throwIfNoEntry: false })?.isFile()) {
+  throw new Error("La cartella `private` deve contenere `index.html`.");
+}
+if (!statSync(sharedCss).isFile()) throw new Error("Foglio di stile condiviso `assets/site.css` mancante.");
 
+const pageEntries = readPageLinks();
+const workDir = mkdtempSync(join(tmpdir(), "brainlab-pages-"));
+
+try {
+cloneAndStagePages(pageEntries, workDir);
+
+const files = collectFiles(sourceDir);
 const htmlFiles = files.filter((file) => file.toLowerCase().endsWith(".html"));
 const skippedFiles = files.filter((file) => file !== pagesConfig && !/\.(html|css|js|mjs)$/i.test(file));
 
-if (!htmlFiles.some((file) => relative(sourceDir, file).toLowerCase() === "index.html")) {
-  throw new Error("La cartella `private` deve contenere `index.html`.");
+const availablePages = new Set(htmlFiles.map((file) => relative(sourceDir, file).replaceAll("\\", "/").toLowerCase()));
+for (const entry of pageEntries) {
+  if (!availablePages.has(entry.nomePagina.toLowerCase())) {
+    throw new Error(`Non è stata creata ${entry.nomePagina} dalla repository ${entry.repoGithub}.`);
+  }
 }
-const pageEntries = readPageLinks(htmlFiles);
-if (!statSync(sharedCss).isFile()) throw new Error("Foglio di stile condiviso `assets/site.css` mancante.");
 
 const password = await hiddenInput("Password condivisa: ");
 if (password.length < 16) {
@@ -247,7 +344,7 @@ for (const file of htmlFiles) {
     .replace(/<link\b[^>]*>/gi, (tag) => {
     if (!/\brel\s*=\s*["']?stylesheet\b/i.test(tag)) return tag;
     const href = tag.match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1] ?? "";
-    if (!href || /^(?:https?:|\/\/|data:|\/css\/site\.css(?:[?#]|$))/i.test(href)) return tag;
+    if (/^(?:\/css\/site\.css(?:[?#]|$))/i.test(href)) return tag;
     return "";
     });
   const hasSharedCss = /href\s*=\s*["'][^"']*\/css\/site\.css(?:[?#][^"']*)?["']/i.test(htmlWithoutLocalStylesheets);
@@ -299,3 +396,6 @@ for (const file of htmlFiles) {
 
 stdout.write(`\nSito cifrato pronto in ${relative(root, outputDir)}\\.\n`);
 stdout.write("Controlla che in `docs` ci siano solo pagine cifrate e poi pubblica quella cartella.\n");
+} finally {
+  rmSync(workDir, { recursive: true, force: true });
+}
