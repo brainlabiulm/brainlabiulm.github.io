@@ -23,9 +23,9 @@ Lo script chiede la password due volte senza mostrarla, controlla che sia lunga 
 
 Per aggiungere pagine, copia i file `.html` dentro `private/` mantenendo la struttura delle sottocartelle e inserisci i relativi link nell'elenco di `private/index.html`. Mantieni i collegamenti relativi, per esempio `pages/analisi.html`; il percorso equivalente sarà disponibile nel sito dopo la cifratura.
 
-Il foglio di stile comune è `assets/site.css`: viene pubblicato come `docs/css/site.css` e collegato automaticamente a ogni HTML cifrato. Puoi quindi copiare HTML e JavaScript senza portare un CSS per ogni pagina. Gli eventuali link HTML a fogli di stile locali vengono rimossi durante la generazione; le pagine useranno lo stile comune. Se una pagina richiede regole particolari, possiamo aggiungerle al foglio comune.
+Il foglio di stile comune è `assets/site.css`: viene pubblicato come `docs/css/site.css` e collegato automaticamente a ogni HTML cifrato. Puoi quindi copiare HTML e JavaScript senza portare un CSS per ogni pagina. Gli eventuali link HTML a fogli di stile locali e i blocchi `<style>` vengono rimossi durante la generazione; le pagine useranno lo stile comune. Se una pagina richiede regole particolari, possiamo aggiungerle al foglio comune.
 
-I file `.js` e `.mjs` presenti in `private/` vengono copiati accanto alle pagine e restano pubblici: non inserirvi password, chiavi API, dati personali o testo riservato. Le pagine HTML sono cifrate; i formati diversi da HTML e JavaScript (PDF, immagini, JSON e così via) sono ignorati per non pubblicarli per errore. Se una pagina usa tali risorse, andranno gestite separatamente.
+Gli script locali `.js` e `.mjs` referenziati nell'HTML vengono incorporati nella pagina prima della cifratura, quindi non vengono pubblicati come file separati. Gli script remoti restano remoti. I moduli JavaScript con import locali devono essere uniti in un singolo file prima del build. I formati diversi da HTML e JavaScript (PDF, immagini, JSON e così via) sono ignorati per non pubblicarli per errore; se una pagina usa tali risorse, andranno gestite separatamente.
 
 ## Pubblicazione su GitHub Pages
 

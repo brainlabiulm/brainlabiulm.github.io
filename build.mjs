@@ -8,7 +8,7 @@ import {
   writeFileSync,
   renameSync,
 } from "node:fs";
-import { basename, dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { stdin, stdout } from "node:process";
 
@@ -24,10 +24,44 @@ function collectFiles(directory) {
   const files = [];
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const absolute = join(directory, entry.name);
-    if (entry.isDirectory()) files.push(...collectFiles(absolute));
+    if (entry.isDirectory() && entry.name !== ".git") files.push(...collectFiles(absolute));
     else if (entry.isFile()) files.push(absolute);
   }
   return files;
+}
+
+function inlineLocalScripts(html, htmlFile) {
+  let count = 0;
+  const transformed = html.replace(/<script\b([^>]*)>\s*<\/script\s*>/gi, (tag, attributes) => {
+    const srcMatch = attributes.match(/\bsrc\s*=\s*(["'])(.*?)\1/i);
+    if (!srcMatch) return tag;
+
+    const src = srcMatch[2];
+    if (/^(?:https?:|\/\/|data:|blob:)/i.test(src)) return tag;
+
+    const cleanSrc = src.split(/[?#]/, 1)[0];
+    const scriptFile = cleanSrc.startsWith("/")
+      ? resolve(sourceDir, `.${cleanSrc}`)
+      : resolve(dirname(htmlFile), cleanSrc);
+    const scriptRelative = relative(sourceDir, scriptFile);
+    if (scriptRelative.startsWith("..") || isAbsolute(scriptRelative)) {
+      throw new Error(`Lo script ${src} esce dalla cartella private in ${relative(sourceDir, htmlFile)}.`);
+    }
+    if (!statSync(scriptFile, { throwIfNoEntry: false })?.isFile()) {
+      throw new Error(`Script locale non trovato: ${src} (pagina ${relative(sourceDir, htmlFile)}).`);
+    }
+
+    const script = readFileSync(scriptFile, "utf8");
+    if (/\btype\s*=\s*["']module["']/i.test(attributes) && /\bimport\s*(?:\(|[\w"'{*])/m.test(script)) {
+      throw new Error(`Il modulo ${src} importa altri moduli locali. Uniscili in un unico file JavaScript prima del build.`);
+    }
+
+    const inlineAttributes = attributes.replace(srcMatch[0], "").trim();
+    const safeScript = script.replace(/<\/script/gi, "<\\/script");
+    count += 1;
+    return `<script${inlineAttributes ? ` ${inlineAttributes}` : ""}>\n${safeScript}\n</script>`;
+  });
+  return { html: transformed, count };
 }
 
 function hiddenInput(prompt) {
@@ -92,7 +126,6 @@ try {
 }
 
 const htmlFiles = files.filter((file) => file.toLowerCase().endsWith(".html"));
-const assetFiles = files.filter((file) => /\.(js|mjs)$/i.test(file));
 const skippedFiles = files.filter((file) => !/\.(html|css|js|mjs)$/i.test(file));
 
 if (!htmlFiles.some((file) => relative(sourceDir, file).toLowerCase() === "index.html")) {
@@ -111,13 +144,6 @@ rmSync(outputDir, { recursive: true, force: true });
 mkdirSync(outputDir, { recursive: true });
 copyFileSync(resolve(root, ".nojekyll"), join(outputDir, ".nojekyll"));
 
-for (const file of assetFiles) {
-  const relativePath = relative(sourceDir, file);
-  const target = join(outputDir, relativePath);
-  mkdirSync(dirname(target), { recursive: true });
-  copyFileSync(file, target);
-  stdout.write(`Copia asset pubblico: ${relativePath}\n`);
-}
 mkdirSync(join(outputDir, "css"), { recursive: true });
 copyFileSync(sharedCss, join(outputDir, "css", "site.css"));
 stdout.write("Copia foglio condiviso: css/site.css\n");
@@ -149,8 +175,12 @@ for (const file of htmlFiles) {
     if (!/<\/head\s*>/i.test(sourceHtml)) {
       throw new Error(`La pagina ${relativePath} non contiene </head>; impossibile inserire il CSS condiviso.`);
     }
-    htmlForEncryption = sourceHtml.replace(/<\/head\s*>/i, `${link}  </head>`);
+    htmlForEncryption = htmlWithoutLocalStylesheets.replace(/<\/head\s*>/i, `${link}  </head>`);
   }
+
+  const inlined = inlineLocalScripts(htmlForEncryption, file);
+  htmlForEncryption = inlined.html;
+  if (inlined.count) stdout.write(`  JavaScript locale incorporato: ${inlined.count} file\n`);
 
   const temporarySource = join(dirname(file), `.build-${process.pid}-${basename(file)}`);
   const temporaryOutput = join(targetDir, basename(temporarySource));
