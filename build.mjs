@@ -53,8 +53,11 @@ function readPageLinks() {
       throw new Error(`La voce ${row} di pages.json deve essere un oggetto.`);
     }
     const { nomeLink, nomePagina, repoGithub, fileSorgente } = entry;
-    if (![nomeLink, nomePagina, repoGithub].every((value) => typeof value === "string" && value.trim())) {
-      throw new Error(`La voce ${row} di pages.json richiede nomeLink, nomePagina e repoGithub.`);
+    if (![nomeLink, nomePagina].every((value) => typeof value === "string" && value.trim())) {
+      throw new Error(`La voce ${row} di pages.json richiede nomeLink e nomePagina.`);
+    }
+    if (repoGithub !== undefined && typeof repoGithub !== "string") {
+      throw new Error(`repoGithub alla voce ${row} deve essere un URL oppure una stringa vuota per una pagina copiata manualmente.`);
     }
 
     const pagePath = nomePagina.trim().replaceAll("\\", "/").replace(/^\.\//, "");
@@ -69,16 +72,23 @@ function readPageLinks() {
     }
     seenPaths.add(pagePath.toLowerCase());
 
-    const repoUrl = repoGithub.trim();
-    let parsedRepo;
-    try {
-      parsedRepo = new URL(repoUrl);
-    } catch {
-      throw new Error(`repoGithub alla voce ${row} deve essere un URL HTTPS GitHub.`);
-    }
-    const repoParts = parsedRepo.pathname.split("/").filter(Boolean);
-    if (parsedRepo.protocol !== "https:" || parsedRepo.hostname !== "github.com" || repoParts.length !== 2) {
-      throw new Error(`repoGithub alla voce ${row} deve avere il formato https://github.com/utente/repository.`);
+    const repoUrl = repoGithub?.trim() ?? "";
+    if (repoUrl) {
+      let parsedRepo;
+      try {
+        parsedRepo = new URL(repoUrl);
+      } catch {
+        throw new Error(`repoGithub alla voce ${row} deve essere un URL HTTPS GitHub.`);
+      }
+      const repoParts = parsedRepo.pathname.split("/").filter(Boolean);
+      if (parsedRepo.protocol !== "https:" || parsedRepo.hostname !== "github.com" || repoParts.length !== 2) {
+        throw new Error(`repoGithub alla voce ${row} deve avere il formato https://github.com/utente/repository.`);
+      }
+    } else {
+      const localPage = resolve(sourceDir, pagePath);
+      if (!isInside(sourceDir, localPage) || !statSync(localPage, { throwIfNoEntry: false })?.isFile()) {
+        throw new Error(`La voce ${row} è in modalità manuale: copia prima l'HTML in private/${pagePath} e lascia repoGithub vuoto.`);
+      }
     }
     let sourcePath = "";
     if (fileSorgente !== undefined) {
@@ -145,7 +155,7 @@ function copyRepositoryPage(entry, checkoutDir) {
 }
 
 function cloneAndStagePages(entries, workDir) {
-  entries.forEach((entry, index) => {
+  entries.filter((entry) => entry.repoGithub).forEach((entry, index) => {
     const checkoutDir = join(workDir, `repo-${index + 1}`);
     const repoName = new URL(entry.repoGithub).pathname.replace(/^\//, "").replace(/\.git$/i, "");
     stdout.write(`Recupero ${entry.repoGithub}\n`);
