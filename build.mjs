@@ -17,11 +17,12 @@ import { tmpdir } from "node:os";
 const root = process.cwd();
 const sourceDir = resolve(root, "private");
 const outputDir = resolve(root, "docs");
+const pagesRoot = resolve(sourceDir, "pages");
 const staticryptCli = resolve(root, "node_modules", "staticrypt", "cli", "index.js");
 const configPath = resolve(root, ".staticrypt.json");
 const passwordTemplate = resolve(root, "password-template.html");
 const sharedCss = resolve(root, "assets", "site.css");
-const pagesConfig = resolve(sourceDir, "pages.json");
+const pagesConfig = resolve(pagesRoot, "pages.json");
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (character) => ({
@@ -35,38 +36,40 @@ function escapeHtml(value) {
 
 function readPageLinks() {
   if (!statSync(pagesConfig, { throwIfNoEntry: false })?.isFile()) {
-    throw new Error("File `private/pages.json` mancante. Crealo con un array di pagine (anche vuoto: []).");
+    throw new Error("File `private/pages/pages.json` mancante. Crealo con un array di pagine (anche vuoto: []).");
   }
 
   let entries;
   try {
     entries = JSON.parse(readFileSync(pagesConfig, "utf8"));
   } catch (error) {
-    throw new Error(`JSON non valido in private/pages.json: ${error.message}`);
+    throw new Error(`JSON non valido in private/pages/pages.json: ${error.message}`);
   }
-  if (!Array.isArray(entries)) throw new Error("`private/pages.json` deve contenere un array JSON.");
+  if (!Array.isArray(entries)) throw new Error("`private/pages/pages.json` deve contenere un array JSON.");
 
   const seenPaths = new Set();
   return entries.map((entry, index) => {
     const row = index + 1;
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-      throw new Error(`La voce ${row} di pages.json deve essere un oggetto.`);
+      throw new Error(`La voce ${row} di pages/pages.json deve essere un oggetto.`);
     }
-    const { nomeLink, nomePagina, repoGithub, fileSorgente } = entry;
-    if (![nomeLink, nomePagina].every((value) => typeof value === "string" && value.trim())) {
-      throw new Error(`La voce ${row} di pages.json richiede nomeLink e nomePagina.`);
+    const { nomeCartella, nomeLink, nomePagina, repoGithub, fileSorgente } = entry;
+    if (![nomeCartella, nomeLink, nomePagina].every((value) => typeof value === "string" && value.trim())) {
+      throw new Error(`La voce ${row} di pages/pages.json richiede nomeCartella, nomeLink e nomePagina.`);
     }
     if (repoGithub !== undefined && typeof repoGithub !== "string") {
       throw new Error(`repoGithub alla voce ${row} deve essere un URL oppure una stringa vuota per una pagina copiata manualmente.`);
     }
 
-    const pagePath = nomePagina.trim().replaceAll("\\", "/").replace(/^\.\//, "");
-    if (pagePath.startsWith("/") || pagePath.split("/").includes("..") || !pagePath.toLowerCase().endsWith(".html")) {
-      throw new Error(`nomePagina alla voce ${row} deve essere un percorso HTML relativo dentro private/ (es. tools/analisi.html).`);
+    const folderName = nomeCartella.trim();
+    if (!/^[a-z0-9][a-z0-9_-]*$/i.test(folderName)) {
+      throw new Error(`nomeCartella alla voce ${row} deve essere un nome semplice senza spazi o slash (es. tobii-marker-checker).`);
     }
-    if (pagePath.toLowerCase() === "index.html") {
-      throw new Error(`La voce ${row} non può puntare a private/index.html.`);
+    const pageFile = nomePagina.trim().replaceAll("\\", "/").replace(/^\.\//, "");
+    if (pageFile.startsWith("/") || pageFile.split("/").includes("..") || !pageFile.toLowerCase().endsWith(".html")) {
+      throw new Error(`nomePagina alla voce ${row} deve essere il nome o percorso relativo del file HTML dentro la sua cartella (es. index.html).`);
     }
+    const pagePath = `pages/${folderName}/${pageFile}`;
     if (seenPaths.has(pagePath.toLowerCase())) {
       throw new Error(`La pagina ${pagePath} è registrata più di una volta in pages.json.`);
     }
@@ -85,9 +88,9 @@ function readPageLinks() {
         throw new Error(`repoGithub alla voce ${row} deve avere il formato https://github.com/utente/repository.`);
       }
     } else {
-      const localPage = resolve(sourceDir, pagePath);
-      if (!isInside(sourceDir, localPage) || !statSync(localPage, { throwIfNoEntry: false })?.isFile()) {
-        throw new Error(`La voce ${row} è in modalità manuale: copia prima l'HTML in private/${pagePath} e lascia repoGithub vuoto.`);
+      const localPage = resolve(pagesRoot, folderName, pageFile);
+      if (!isInside(pagesRoot, localPage) || !statSync(localPage, { throwIfNoEntry: false })?.isFile()) {
+        throw new Error(`La voce ${row} è manuale: copia prima l'HTML in private/${pagePath} e lascia repoGithub vuoto.`);
       }
     }
     let sourcePath = "";
@@ -100,7 +103,14 @@ function readPageLinks() {
         throw new Error(`fileSorgente alla voce ${row} deve essere un percorso HTML relativo alla repository.`);
       }
     }
-    return { nomeLink: nomeLink.trim(), nomePagina: pagePath, repoGithub: repoUrl, fileSorgente: sourcePath };
+    return {
+      nomeCartella: folderName,
+      nomeLink: nomeLink.trim(),
+      nomePagina: pageFile,
+      pagePath,
+      repoGithub: repoUrl,
+      fileSorgente: sourcePath,
+    };
   });
 }
 
@@ -127,10 +137,11 @@ function copyRepositoryPage(entry, checkoutDir) {
     );
   }
 
-  const targetHtml = resolve(sourceDir, entry.nomePagina);
-  if (!isInside(sourceDir, targetHtml)) throw new Error(`Percorso pagina non valido: ${entry.nomePagina}.`);
+  const pageDirectory = resolve(pagesRoot, entry.nomeCartella);
+  const targetHtml = resolve(pageDirectory, entry.nomePagina);
+  if (!isInside(pagesRoot, targetHtml)) throw new Error(`Percorso pagina non valido: ${entry.pagePath}.`);
   mkdirSync(dirname(targetHtml), { recursive: true });
-  const html = readFileSync(sourceHtml, "utf8");
+  let html = readFileSync(sourceHtml, "utf8");
 
   for (const tag of html.match(/<script\b[^>]*>\s*<\/script\s*>/gi) ?? []) {
     const src = tag.match(/\bsrc\s*=\s*(["'])(.*?)\1/i)?.[2] ?? "";
@@ -144,11 +155,16 @@ function copyRepositoryPage(entry, checkoutDir) {
       throw new Error(`Script locale non trovato nella repository ${entry.repoGithub}: ${src}.`);
     }
     const targetScript = cleanSrc.startsWith("/")
-      ? resolve(sourceDir, `.${cleanSrc}`)
+      ? resolve(pageDirectory, `.${cleanSrc}`)
       : resolve(dirname(targetHtml), cleanSrc);
-    if (!isInside(sourceDir, targetScript)) throw new Error(`Percorso script non valido: ${src}.`);
+    if (!isInside(pageDirectory, targetScript)) throw new Error(`Percorso script non valido: ${src}.`);
     mkdirSync(dirname(targetScript), { recursive: true });
     copyFileSync(sourceScript, targetScript);
+    if (cleanSrc.startsWith("/")) {
+      const pageRelativeScript = relative(dirname(targetHtml), targetScript).replaceAll("\\", "/");
+      const rewrittenSrc = pageRelativeScript.startsWith(".") ? pageRelativeScript : `./${pageRelativeScript}`;
+      html = html.replace(tag, tag.replace(src, rewrittenSrc));
+    }
   }
 
   writeFileSync(targetHtml, html, "utf8");
@@ -175,8 +191,8 @@ function renderPageLinks(entries) {
   if (!entries.length) {
     return '<p class="portal-empty">Le pagine del laboratorio saranno elencate qui.</p>';
   }
-  return `<ul class="portal-links">${entries.map(({ nomeLink, nomePagina }) =>
-    `\n          <li><a href="${escapeHtml(nomePagina)}">${escapeHtml(nomeLink)}</a></li>`
+  return `<ul class="portal-links">${entries.map(({ nomeLink, pagePath }) =>
+    `\n          <li><a href="${escapeHtml(pagePath)}">${escapeHtml(nomeLink)}</a></li>`
   ).join("")}\n        </ul>`;
 }
 
@@ -310,8 +326,8 @@ const skippedFiles = files.filter((file) => file !== pagesConfig && !/\.(html|cs
 
 const availablePages = new Set(htmlFiles.map((file) => relative(sourceDir, file).replaceAll("\\", "/").toLowerCase()));
 for (const entry of pageEntries) {
-  if (!availablePages.has(entry.nomePagina.toLowerCase())) {
-    throw new Error(`Non è stata creata ${entry.nomePagina} dalla repository ${entry.repoGithub}.`);
+  if (!availablePages.has(entry.pagePath.toLowerCase())) {
+    throw new Error(`Non è stata creata ${entry.pagePath}${entry.repoGithub ? ` dalla repository ${entry.repoGithub}` : " nella cartella locale"}.`);
   }
 }
 
