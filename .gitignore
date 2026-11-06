@@ -1,0 +1,6 @@
+# Pagine in chiaro: non devono mai essere caricate nel repository pubblico.
+/private/
+
+# Dipendenze Node.js
+/node_modules/
+

@@ -1,0 +1,12 @@
+{
+  "name": "brainlab-pages",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Portale statico BrainLab con pagine HTML cifrate per GitHub Pages",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "staticrypt": "3.5.4"
+  }
+}
