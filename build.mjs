@@ -19,6 +19,80 @@ const staticryptCli = resolve(root, "node_modules", "staticrypt", "cli", "index.
 const configPath = resolve(root, ".staticrypt.json");
 const passwordTemplate = resolve(root, "password-template.html");
 const sharedCss = resolve(root, "assets", "site.css");
+const pagesConfig = resolve(sourceDir, "pages.json");
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]);
+}
+
+function readPageLinks(htmlFiles) {
+  if (!statSync(pagesConfig, { throwIfNoEntry: false })?.isFile()) {
+    throw new Error("File `private/pages.json` mancante. Crealo con un array di pagine (anche vuoto: []).");
+  }
+
+  let entries;
+  try {
+    entries = JSON.parse(readFileSync(pagesConfig, "utf8"));
+  } catch (error) {
+    throw new Error(`JSON non valido in private/pages.json: ${error.message}`);
+  }
+  if (!Array.isArray(entries)) throw new Error("`private/pages.json` deve contenere un array JSON.");
+
+  const availablePages = new Set(htmlFiles.map((file) => relative(sourceDir, file).replaceAll("\\", "/")));
+  const seenPaths = new Set();
+  return entries.map((entry, index) => {
+    const row = index + 1;
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new Error(`La voce ${row} di pages.json deve essere un oggetto.`);
+    }
+    const { nomeLink, nomePagina, repoGithub } = entry;
+    if (![nomeLink, nomePagina, repoGithub].every((value) => typeof value === "string" && value.trim())) {
+      throw new Error(`La voce ${row} di pages.json richiede nomeLink, nomePagina e repoGithub.`);
+    }
+
+    const pagePath = nomePagina.trim().replaceAll("\\", "/").replace(/^\.\//, "");
+    if (pagePath.startsWith("/") || pagePath.split("/").includes("..") || !pagePath.toLowerCase().endsWith(".html")) {
+      throw new Error(`nomePagina alla voce ${row} deve essere un percorso HTML relativo dentro private/ (es. tools/analisi.html).`);
+    }
+    if (!availablePages.has(pagePath)) {
+      throw new Error(`La pagina ${pagePath} indicata alla voce ${row} non esiste in private/.`);
+    }
+    if (pagePath.toLowerCase() === "index.html") {
+      throw new Error(`La voce ${row} non può puntare a private/index.html.`);
+    }
+    if (seenPaths.has(pagePath.toLowerCase())) {
+      throw new Error(`La pagina ${pagePath} è registrata più di una volta in pages.json.`);
+    }
+    seenPaths.add(pagePath.toLowerCase());
+
+    const repoUrl = repoGithub.trim();
+    let parsedRepo;
+    try {
+      parsedRepo = new URL(repoUrl);
+    } catch {
+      throw new Error(`repoGithub alla voce ${row} deve essere un URL HTTPS GitHub.`);
+    }
+    if (parsedRepo.protocol !== "https:" || parsedRepo.hostname !== "github.com") {
+      throw new Error(`repoGithub alla voce ${row} deve essere un URL HTTPS GitHub.`);
+    }
+    return { nomeLink: nomeLink.trim(), nomePagina: pagePath, repoGithub: repoUrl };
+  });
+}
+
+function renderPageLinks(entries) {
+  if (!entries.length) {
+    return '<p class="portal-empty">Le pagine del laboratorio saranno elencate qui.</p>';
+  }
+  return `<ul class="portal-links">${entries.map(({ nomeLink, nomePagina }) =>
+    `\n          <li><a href="${escapeHtml(nomePagina)}">${escapeHtml(nomeLink)}</a></li>`
+  ).join("")}\n        </ul>`;
+}
 
 function collectFiles(directory) {
   const files = [];
@@ -126,11 +200,12 @@ try {
 }
 
 const htmlFiles = files.filter((file) => file.toLowerCase().endsWith(".html"));
-const skippedFiles = files.filter((file) => !/\.(html|css|js|mjs)$/i.test(file));
+const skippedFiles = files.filter((file) => file !== pagesConfig && !/\.(html|css|js|mjs)$/i.test(file));
 
 if (!htmlFiles.some((file) => relative(sourceDir, file).toLowerCase() === "index.html")) {
   throw new Error("La cartella `private` deve contenere `index.html`.");
 }
+const pageEntries = readPageLinks(htmlFiles);
 if (!statSync(sharedCss).isFile()) throw new Error("Foglio di stile condiviso `assets/site.css` mancante.");
 
 const password = await hiddenInput("Password condivisa: ");
@@ -159,7 +234,14 @@ for (const file of htmlFiles) {
   mkdirSync(targetDir, { recursive: true });
   stdout.write(`Cifratura: ${relativePath}\n`);
 
-  const sourceHtml = readFileSync(file, "utf8");
+  let sourceHtml = readFileSync(file, "utf8");
+  if (relativePath.toLowerCase() === "index.html") {
+    const marker = "<!-- PAGE_LINKS -->";
+    if (!sourceHtml.includes(marker)) {
+      throw new Error("private/index.html deve contenere il segnaposto <!-- PAGE_LINKS --> nell'area elenco pagine.");
+    }
+    sourceHtml = sourceHtml.replace(marker, renderPageLinks(pageEntries));
+  }
   const htmlWithoutLocalStylesheets = sourceHtml
     .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, "")
     .replace(/<link\b[^>]*>/gi, (tag) => {

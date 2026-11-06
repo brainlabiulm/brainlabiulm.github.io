@@ -53,6 +53,11 @@ h3 { color: #35335b; font-size: 16px; }
 p, li { line-height: 1.6; }
 .muted, small, footer { color: var(--muted); }
 .empty-state { padding: 30px 20px; text-align: center; background: #fafafe; border: 1px dashed #d7d5e8; border-radius: 8px; }
+.portal-empty { margin: 0; padding: 18px; color: var(--muted); background: #fafafe; border: 1px dashed #d7d5e8; border-radius: 8px; }
+.portal-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.portal-links li { min-width: 0; }
+.portal-links a { display: block; padding: 16px 18px; color: var(--accent); background: #fafafe; border: 1px solid var(--border); border-radius: 8px; font-weight: 600; text-decoration: none; transition: border-color .15s ease, transform .15s ease, background .15s ease; }
+.portal-links a:hover { background: #f3f1fc; border-color: #b7b2dd; transform: translateY(-1px); }
 .empty-state strong { display: block; margin-bottom: 7px; color: #35335b; }
 .empty-state p { max-width: 540px; margin: 0 auto; color: var(--muted); font-size: 13px; }
 .notice { display: flex; gap: 11px; align-items: flex-start; margin-top: 16px; padding: 13px 15px; background: #eeecfa; border-radius: 7px; color: #4b477d; font-size: 12px; line-height: 1.5; }

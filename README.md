@@ -21,7 +21,21 @@ npm run build
 
 Lo script chiede la password due volte senza mostrarla, controlla che sia lunga almeno 16 caratteri e genera le pagine cifrate in `docs/`. Puoi accedere una volta e usare “Ricordami” per aprire le altre pagine dello stesso sito senza reinserirla a ogni click.
 
-Per aggiungere pagine, copia i file `.html` dentro `private/` mantenendo la struttura delle sottocartelle e inserisci i relativi link nell'elenco di `private/index.html`. Mantieni i collegamenti relativi, per esempio `pages/analisi.html`; il percorso equivalente sarà disponibile nel sito dopo la cifratura.
+Per aggiungere pagine, copia i file `.html` dentro `private/` mantenendo la struttura delle sottocartelle e registra ogni pagina nell'array `private/pages.json` (puoi copiare `pages.example.json` come modello). Per esempio:
+
+```json
+[
+  {
+    "nomeLink": "Analisi dati",
+    "nomePagina": "pages/analisi.html",
+    "repoGithub": "https://github.com/organizzazione/repository"
+  }
+]
+```
+
+`nomeLink` è l'etichetta mostrata nel portale; `nomePagina` è il percorso relativo del file HTML presente in `private/`; `repoGithub` indica la repository sorgente. Il build controlla che il file HTML esista e genera automaticamente il link nella pagina iniziale. `pages.json` si trova dentro `private/` ed è escluso dalla repository pubblica insieme alle pagine in chiaro.
+
+Per ora il JSON registra le repository ma non le scarica automaticamente: copia prima i file della pagina dentro `private/`. Per sincronizzare repository private senza copie manuali bisogna configurare un token GitHub con accesso in sola lettura e una procedura di build automatica; il token va conservato come secret e mai scritto nel JSON.
 
 Il foglio di stile comune è `assets/site.css`: viene pubblicato come `docs/css/site.css` e collegato automaticamente a ogni HTML cifrato. Puoi quindi copiare HTML e JavaScript senza portare un CSS per ogni pagina. Gli eventuali link HTML a fogli di stile locali e i blocchi `<style>` vengono rimossi durante la generazione; le pagine useranno lo stile comune. Se una pagina richiede regole particolari, possiamo aggiungerle al foglio comune.
 
