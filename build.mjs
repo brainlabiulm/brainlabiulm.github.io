@@ -134,12 +134,14 @@ for (const file of htmlFiles) {
   stdout.write(`Cifratura: ${relativePath}\n`);
 
   const sourceHtml = readFileSync(file, "utf8");
-  const htmlWithoutLocalStylesheets = sourceHtml.replace(/<link\b[^>]*>/gi, (tag) => {
+  const htmlWithoutLocalStylesheets = sourceHtml
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, "")
+    .replace(/<link\b[^>]*>/gi, (tag) => {
     if (!/\brel\s*=\s*["']?stylesheet\b/i.test(tag)) return tag;
     const href = tag.match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1] ?? "";
     if (!href || /^(?:https?:|\/\/|data:|\/css\/site\.css(?:[?#]|$))/i.test(href)) return tag;
     return "";
-  });
+    });
   const hasSharedCss = /href\s*=\s*["'][^"']*\/css\/site\.css(?:[?#][^"']*)?["']/i.test(htmlWithoutLocalStylesheets);
   let htmlForEncryption = htmlWithoutLocalStylesheets;
   if (!hasSharedCss) {
