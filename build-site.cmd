@@ -14,22 +14,6 @@ if errorlevel 1 (
   )
 )
 
-where gh >nul 2>nul
-if errorlevel 1 (
-  echo GitHub CLI ^(gh^) non e' installato o non e' nel PATH.
-  echo Serve per scaricare le pagine dalle repository indicate nel JSON.
-  goto :failed
-)
-
-gh auth status --active >nul 2>nul
-if errorlevel 1 (
-  echo GitHub CLI non risulta autenticata con un account attivo.
-  echo Per accedere, apri PowerShell e lancia:
-  echo   gh auth login --hostname github.com --web
-  echo Se hai piu' account, seleziona quello che puo' leggere le repository private.
-  goto :failed
-)
-
 if not exist "node_modules\staticrypt\cli\index.js" (
   echo Installazione delle dipendenze...
   call "%NPM_CMD%" install

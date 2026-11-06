@@ -7,12 +7,10 @@ import {
   readFileSync,
   writeFileSync,
   renameSync,
-  mkdtempSync,
 } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { stdin, stdout } from "node:process";
-import { tmpdir } from "node:os";
 
 const root = process.cwd();
 const sourceDir = resolve(root, "private");
@@ -53,14 +51,10 @@ function readPageLinks() {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
       throw new Error(`La voce ${row} di pages/pages.json deve essere un oggetto.`);
     }
-    const { nomeCartella, nomeLink, nomePagina, repoGithub, fileSorgente } = entry;
+    const { nomeCartella, nomeLink, nomePagina } = entry;
     if (![nomeCartella, nomeLink, nomePagina].every((value) => typeof value === "string" && value.trim())) {
       throw new Error(`La voce ${row} di pages/pages.json richiede nomeCartella, nomeLink e nomePagina.`);
     }
-    if (repoGithub !== undefined && typeof repoGithub !== "string") {
-      throw new Error(`repoGithub alla voce ${row} deve essere un URL oppure una stringa vuota per una pagina copiata manualmente.`);
-    }
-
     const folderName = nomeCartella.trim();
     if (!/^[a-z0-9][a-z0-9_-]*$/i.test(folderName)) {
       throw new Error(`nomeCartella alla voce ${row} deve essere un nome semplice senza spazi o slash (es. tobii-marker-checker).`);
@@ -75,41 +69,15 @@ function readPageLinks() {
     }
     seenPaths.add(pagePath.toLowerCase());
 
-    const repoUrl = repoGithub?.trim() ?? "";
-    if (repoUrl) {
-      let parsedRepo;
-      try {
-        parsedRepo = new URL(repoUrl);
-      } catch {
-        throw new Error(`repoGithub alla voce ${row} deve essere un URL HTTPS GitHub.`);
-      }
-      const repoParts = parsedRepo.pathname.split("/").filter(Boolean);
-      if (parsedRepo.protocol !== "https:" || parsedRepo.hostname !== "github.com" || repoParts.length !== 2) {
-        throw new Error(`repoGithub alla voce ${row} deve avere il formato https://github.com/utente/repository.`);
-      }
-    } else {
-      const localPage = resolve(pagesRoot, folderName, pageFile);
-      if (!isInside(pagesRoot, localPage) || !statSync(localPage, { throwIfNoEntry: false })?.isFile()) {
-        throw new Error(`La voce ${row} è manuale: copia prima l'HTML in private/${pagePath} e lascia repoGithub vuoto.`);
-      }
-    }
-    let sourcePath = "";
-    if (fileSorgente !== undefined) {
-      if (typeof fileSorgente !== "string" || !fileSorgente.trim()) {
-        throw new Error(`fileSorgente alla voce ${row}, se presente, deve essere un percorso HTML relativo alla repository.`);
-      }
-      sourcePath = fileSorgente.trim().replaceAll("\\", "/");
-      if (sourcePath.startsWith("/") || sourcePath.split("/").includes("..") || !sourcePath.toLowerCase().endsWith(".html")) {
-        throw new Error(`fileSorgente alla voce ${row} deve essere un percorso HTML relativo alla repository.`);
-      }
+    const localPage = resolve(pagesRoot, folderName, pageFile);
+    if (!isInside(pagesRoot, localPage) || !statSync(localPage, { throwIfNoEntry: false })?.isFile()) {
+      throw new Error(`La pagina manca: copia l'HTML in private/${pagePath}.`);
     }
     return {
       nomeCartella: folderName,
       nomeLink: nomeLink.trim(),
       nomePagina: pageFile,
       pagePath,
-      repoGithub: repoUrl,
-      fileSorgente: sourcePath,
     };
   });
 }
@@ -117,74 +85,6 @@ function readPageLinks() {
 function isInside(directory, file) {
   const path = relative(directory, file);
   return path === "" || (!path.startsWith("..") && !isAbsolute(path));
-}
-
-function copyRepositoryPage(entry, checkoutDir) {
-  const rootIndex = ["index.html", "Index.html", "INDEX.HTML"]
-    .map((name) => join(checkoutDir, name))
-    .find((path) => statSync(path, { throwIfNoEntry: false })?.isFile());
-  const rootHtml = readdirSync(checkoutDir, { withFileTypes: true })
-    .filter((item) => item.isFile() && item.name.toLowerCase().endsWith(".html"))
-    .map((item) => join(checkoutDir, item.name));
-  const sourceHtml = entry.fileSorgente
-    ? resolve(checkoutDir, entry.fileSorgente)
-    : rootIndex ?? (rootHtml.length === 1 ? rootHtml[0] : null);
-
-  if (!sourceHtml || !isInside(checkoutDir, sourceHtml) || !statSync(sourceHtml, { throwIfNoEntry: false })?.isFile()) {
-    const candidates = rootHtml.map((file) => basename(file)).join(", ") || "nessun HTML alla radice";
-    throw new Error(
-      `Non riesco a scegliere l'HTML iniziale in ${entry.repoGithub} (${candidates}). Aggiungi "fileSorgente" alla voce di pages.json, per esempio "tobii-check.html".`,
-    );
-  }
-
-  const pageDirectory = resolve(pagesRoot, entry.nomeCartella);
-  const targetHtml = resolve(pageDirectory, entry.nomePagina);
-  if (!isInside(pagesRoot, targetHtml)) throw new Error(`Percorso pagina non valido: ${entry.pagePath}.`);
-  mkdirSync(dirname(targetHtml), { recursive: true });
-  let html = readFileSync(sourceHtml, "utf8");
-
-  for (const tag of html.match(/<script\b[^>]*>\s*<\/script\s*>/gi) ?? []) {
-    const src = tag.match(/\bsrc\s*=\s*(["'])(.*?)\1/i)?.[2] ?? "";
-    if (!src || /^(?:https?:|\/\/|data:|blob:)/i.test(src)) continue;
-    const cleanSrc = src.split(/[?#]/, 1)[0];
-    const sourceScript = cleanSrc.startsWith("/")
-      ? resolve(checkoutDir, `.${cleanSrc}`)
-      : resolve(dirname(sourceHtml), cleanSrc);
-    if (!isInside(checkoutDir, sourceScript)) throw new Error(`Lo script ${src} esce dalla repository ${entry.repoGithub}.`);
-    if (!statSync(sourceScript, { throwIfNoEntry: false })?.isFile()) {
-      throw new Error(`Script locale non trovato nella repository ${entry.repoGithub}: ${src}.`);
-    }
-    const targetScript = cleanSrc.startsWith("/")
-      ? resolve(pageDirectory, `.${cleanSrc}`)
-      : resolve(dirname(targetHtml), cleanSrc);
-    if (!isInside(pageDirectory, targetScript)) throw new Error(`Percorso script non valido: ${src}.`);
-    mkdirSync(dirname(targetScript), { recursive: true });
-    copyFileSync(sourceScript, targetScript);
-    if (cleanSrc.startsWith("/")) {
-      const pageRelativeScript = relative(dirname(targetHtml), targetScript).replaceAll("\\", "/");
-      const rewrittenSrc = pageRelativeScript.startsWith(".") ? pageRelativeScript : `./${pageRelativeScript}`;
-      html = html.replace(tag, tag.replace(src, rewrittenSrc));
-    }
-  }
-
-  writeFileSync(targetHtml, html, "utf8");
-}
-
-function cloneAndStagePages(entries, workDir) {
-  entries.filter((entry) => entry.repoGithub).forEach((entry, index) => {
-    const checkoutDir = join(workDir, `repo-${index + 1}`);
-    const repoName = new URL(entry.repoGithub).pathname.replace(/^\//, "").replace(/\.git$/i, "");
-    stdout.write(`Recupero ${entry.repoGithub}\n`);
-    const result = spawnSync("gh", ["repo", "clone", repoName, checkoutDir, "--", "--depth", "1"], {
-      cwd: root,
-      stdio: "inherit",
-    });
-    if (result.error) throw new Error(`Impossibile avviare GitHub CLI per ${entry.repoGithub}: ${result.error.message}`);
-    if (result.status !== 0) {
-      throw new Error(`Download non riuscito per ${entry.repoGithub}. Esegui gh auth status e accedi con gh auth login usando un account autorizzato a leggere la repository.`);
-    }
-    copyRepositoryPage(entry, checkoutDir);
-  });
 }
 
 function renderPageLinks(entries) {
@@ -315,10 +215,6 @@ if (!statSync(resolve(sourceDir, "index.html"), { throwIfNoEntry: false })?.isFi
 if (!statSync(sharedCss).isFile()) throw new Error("Foglio di stile condiviso `assets/site.css` mancante.");
 
 const pageEntries = readPageLinks();
-const workDir = mkdtempSync(join(tmpdir(), "brainlab-pages-"));
-
-try {
-cloneAndStagePages(pageEntries, workDir);
 
 const files = collectFiles(sourceDir);
 const htmlFiles = files.filter((file) => file.toLowerCase().endsWith(".html"));
@@ -327,7 +223,7 @@ const skippedFiles = files.filter((file) => file !== pagesConfig && !/\.(html|cs
 const availablePages = new Set(htmlFiles.map((file) => relative(sourceDir, file).replaceAll("\\", "/").toLowerCase()));
 for (const entry of pageEntries) {
   if (!availablePages.has(entry.pagePath.toLowerCase())) {
-    throw new Error(`Non è stata creata ${entry.pagePath}${entry.repoGithub ? ` dalla repository ${entry.repoGithub}` : " nella cartella locale"}.`);
+    throw new Error(`La pagina indicata nel catalogo non esiste: private/${entry.pagePath}.`);
   }
 }
 
@@ -422,6 +318,3 @@ for (const file of htmlFiles) {
 
 stdout.write(`\nSito cifrato pronto in ${relative(root, outputDir)}\\.\n`);
 stdout.write("Controlla che in `docs` ci siano solo pagine cifrate e poi pubblica quella cartella.\n");
-} finally {
-  rmSync(workDir, { recursive: true, force: true });
-}

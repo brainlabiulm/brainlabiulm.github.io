@@ -12,14 +12,14 @@ Questa soluzione usa una sola password condivisa: non identifica i singoli visit
 
 ## Preparazione e generazione
 
-Richiede Node.js 16 o successivo e GitHub CLI (`gh`). Nella cartella del progetto:
+Richiede Node.js 16 o successivo. Nella cartella del progetto:
 
 ```powershell
 npm install
 npm run build
 ```
 
-Su Windows puoi avviare `build-site.cmd` con un doppio clic: controlla GitHub CLI, installa le dipendenze se mancano e lancia il build. Non pubblica automaticamente su GitHub; al termine le pagine cifrate si trovano in `docs/`.
+Su Windows puoi avviare `build-site.cmd` con un doppio clic: installa le dipendenze se mancano e lancia il build. Non scarica pagine da GitHub e non pubblica automaticamente; al termine le pagine cifrate si trovano in `docs/`.
 
 Lo script chiede la password due volte senza mostrarla, controlla che sia lunga almeno 16 caratteri e genera le pagine cifrate in `docs/`. Puoi accedere una volta e usare “Ricordami” per aprire le altre pagine dello stesso sito senza reinserirla a ogni click.
 
@@ -30,17 +30,16 @@ Le pagine sono organizzate in `private/pages/<nome-cartella>/`; il catalogo è `
   {
     "nomeCartella": "analisi-dati",
     "nomeLink": "Analisi dati",
-    "nomePagina": "index.html",
-    "repoGithub": "https://github.com/organizzazione/repository"
+    "nomePagina": "index.html"
   }
 ]
 ```
 
-`nomeCartella` è una cartella breve senza spazi; `nomeLink` è l'etichetta mostrata nel portale; `nomePagina` è il file HTML dentro quella cartella; `repoGithub` è l'URL della repository sorgente. A ogni build, GitHub CLI (`gh`) scarica la repository in una cartella temporanea, sceglie `index.html` oppure l'unico HTML alla radice, e copia l'HTML e gli script locali necessari in `private/pages/<nomeCartella>/`, preservando le sottocartelle degli script. Se la repository contiene più HTML alla radice o l'HTML iniziale è in una sottocartella, aggiungi il campo facoltativo `fileSorgente`, per esempio `"fileSorgente": "tobii-check.html"`. Il build aggiorna automaticamente il link nella pagina iniziale. Catalogo e sorgenti restano in `private/`, esclusi dalla repository pubblica.
+`nomeCartella` è una cartella breve senza spazi; `nomeLink` è l'etichetta mostrata nel portale; `nomePagina` è il file HTML dentro quella cartella. Il build legge solo i file locali in `private/pages/<nomeCartella>/` e aggiorna il link nella pagina iniziale. Catalogo e sorgenti restano in `private/`, esclusi dalla repository pubblica.
 
-Per copiare una pagina manualmente, metti l'HTML e tutti i suoi JavaScript in `private/pages/<nomeCartella>/`, conservando le sottocartelle indicate dai riferimenti `src` dell'HTML. Lascia `repoGithub` come stringa vuota (`"repoGithub": ""`): il build userà la copia locale senza scaricare la repository.
+Metti l'HTML e i suoi JavaScript nella cartella della pagina, conservando le sottocartelle indicate dai riferimenti `src` dell'HTML. Per esempio `private/pages/analisi-dati/index.html` e `private/pages/analisi-dati/js/app.js`.
 
-Il build usa GitHub CLI per scaricare i repository, rimuove dai sorgenti ogni stylesheet e blocco `<style>`, e collega tutte le pagine soltanto ad `assets/site.css`, copiato in `docs/css/site.css`. I CSS delle repository sorgente non vengono scaricati. Per le repository private, accedi a GitHub CLI con un account autorizzato: `gh auth status` controlla lo stato; se serve, `gh auth login --hostname github.com --web` avvia l'accesso dal browser. Se hai più account, seleziona quello autorizzato con `gh auth switch --hostname github.com --user NOME_UTENTE`. Non inserire token o password in `pages.json`.
+Il build rimuove dai sorgenti ogni stylesheet e blocco `<style>` e collega tutte le pagine soltanto ad `assets/site.css`, copiato in `docs/css/site.css`.
 
 Il foglio di stile comune è `assets/site.css`: viene pubblicato come `docs/css/site.css` e collegato automaticamente a ogni HTML cifrato. Puoi quindi copiare HTML e JavaScript senza portare un CSS per ogni pagina. Gli eventuali link HTML a fogli di stile locali e i blocchi `<style>` vengono rimossi durante la generazione; le pagine useranno lo stile comune. Se una pagina richiede regole particolari, possiamo aggiungerle al foglio comune.
 
