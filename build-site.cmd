@@ -2,26 +2,29 @@
 setlocal
 cd /d "%~dp0"
 
-set "NPM_CMD=npm.cmd"
-where npm.cmd >nul 2>nul
-if errorlevel 1 (
-  if exist "C:\Program Files\nodejs\npm.cmd" (
-    set "NPM_CMD=C:\Program Files\nodejs\npm.cmd"
-  ) else (
-    echo Node.js e npm non sono stati trovati.
-    echo Installa Node.js e poi riapri questo file.
-    goto :failed
-  )
+set "NODE_EXE=C:\Program Files\nodejs\node.exe"
+set "NPM_CLI=C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js"
+
+if not exist "%NODE_EXE%" (
+  echo Node.js non e' stato trovato in C:\Program Files\nodejs.
+  echo Installa Node.js oppure modifica NODE_EXE in questo file.
+  goto :failed
+)
+
+if not exist "%NPM_CLI%" (
+  echo npm non e' stato trovato accanto a Node.js.
+  echo Reinstalla Node.js oppure modifica NPM_CLI in questo file.
+  goto :failed
 )
 
 if not exist "node_modules\staticrypt\cli\index.js" (
   echo Installazione delle dipendenze...
-  call "%NPM_CMD%" install
+  "%NODE_EXE%" "%NPM_CLI%" install
   if errorlevel 1 goto :failed
 )
 
 echo Avvio del build BrainLab...
-call "%NPM_CMD%" run build
+"%NODE_EXE%" build.mjs
 if errorlevel 1 goto :failed
 
 echo.
