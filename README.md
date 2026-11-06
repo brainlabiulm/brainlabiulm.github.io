@@ -39,11 +39,9 @@ Le pagine sono organizzate in `private/pages/<nome-cartella>/`; il catalogo è `
 
 Metti l'HTML e i suoi JavaScript nella cartella della pagina, conservando le sottocartelle indicate dai riferimenti `src` dell'HTML. Per esempio `private/pages/analisi-dati/index.html` e `private/pages/analisi-dati/js/app.js`.
 
-Il build rimuove dai sorgenti ogni stylesheet e blocco `<style>` e collega tutte le pagine soltanto ad `assets/site.css`, copiato in `docs/css/site.css`.
+Il foglio comune è `assets/site.css`: il builder lo collega dopo i CSS locali, così i colori, i caratteri e la scala tipografica BrainLab hanno la precedenza. Layout, griglie, spaziature e componenti restano invece definiti dal CSS di ciascuna pagina. I fogli CSS locali collegati nell'HTML vengono copiati in `docs/` mantenendo le sottocartelle. I CSS pubblicati sono visibili a tutti: non inserirvi informazioni riservate.
 
-Il foglio di stile comune è `assets/site.css`: viene pubblicato come `docs/css/site.css` e collegato automaticamente a ogni HTML cifrato. Puoi quindi copiare HTML e JavaScript senza portare un CSS per ogni pagina. Gli eventuali link HTML a fogli di stile locali e i blocchi `<style>` vengono rimossi durante la generazione; le pagine useranno lo stile comune. Se una pagina richiede regole particolari, possiamo aggiungerle al foglio comune.
-
-Gli script locali `.js` e `.mjs` referenziati nell'HTML vengono incorporati nella pagina prima della cifratura, quindi non vengono pubblicati come file separati. Gli script remoti restano remoti. I moduli JavaScript con import locali devono essere uniti in un singolo file prima del build. I formati diversi da HTML e JavaScript (PDF, immagini, JSON e così via) non vengono copiati automaticamente.
+Gli script locali `.js` e `.mjs` referenziati nell'HTML vengono incorporati nella pagina prima della cifratura, quindi non vengono pubblicati come file separati. Gli script remoti restano remoti. I moduli JavaScript con import locali devono essere uniti in un singolo file prima del build. Gli altri file (PDF, immagini, JSON e così via) non vengono copiati automaticamente.
 
 ## Pubblicazione su GitHub Pages
 

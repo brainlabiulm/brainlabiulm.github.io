@@ -10,8 +10,8 @@
 
 * { box-sizing: border-box; }
 body { min-height: 100vh; margin: 0; }
-main, .site-shell { width: min(100% - 32px, 1080px); margin: 28px auto 48px; }
-header, .site-header {
+body.portal-home main, body.portal-home .site-shell { width: min(100% - 32px, 1080px); margin: 28px auto 48px; }
+body.portal-home header, body.portal-home .site-header {
   position: relative;
   padding: 25px 30px;
   color: #fff;
@@ -25,10 +25,11 @@ header, .site-header {
   font-size: 11px;
   font-weight: 800;
 }
-.brand-line { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
-.brand-mark { width: 34px; height: 34px; flex: none; }
-h1 { margin: 0; font-size: 29px; font-weight: 600; letter-spacing: -.03em; }
-header p, .site-header p { margin: 7px 0 0; color: #c1c2df; line-height: 1.5; }
+body.portal-home .brand-line { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+body.portal-home .brand-mark { width: 34px; height: 34px; flex: none; }
+body.portal-home h1 { margin: 0; }
+h1 { font-size: 29px; font-weight: 600; letter-spacing: -.03em; }
+body.portal-home header p, body.portal-home .site-header p { margin: 7px 0 0; color: #c1c2df; line-height: 1.5; }
 .access-badge {
   display: inline-block;
   margin-top: 14px;
@@ -39,45 +40,117 @@ header p, .site-header p { margin: 7px 0 0; color: #c1c2df; line-height: 1.5; }
   border-radius: 12px;
   font-size: 12px;
 }
-.panel, section, article {
+body.portal-home .panel, body.portal-home section, body.portal-home article {
   margin-top: 18px;
   padding: 24px;
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 10px;
 }
-.panel-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
-.section-label { margin: 0 0 7px; color: var(--muted); letter-spacing: .1em; }
-h2 { margin: 0; color: #35335b; font-size: 19px; font-weight: 600; }
+body.portal-home .panel-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.section-label { color: var(--muted); letter-spacing: .1em; }
+body.portal-home .section-label { margin: 0 0 7px; }
+h2 { color: #35335b; font-size: 19px; font-weight: 600; }
 h3 { color: #35335b; font-size: 16px; }
 p, li { line-height: 1.6; }
 .muted, small, footer { color: var(--muted); }
-.empty-state { padding: 30px 20px; text-align: center; background: #fafafe; border: 1px dashed #d7d5e8; border-radius: 8px; }
+body.portal-home .empty-state { padding: 30px 20px; text-align: center; background: #fafafe; border: 1px dashed #d7d5e8; border-radius: 8px; }
 .portal-empty { margin: 0; padding: 18px; color: var(--muted); background: #fafafe; border: 1px dashed #d7d5e8; border-radius: 8px; }
 .portal-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
 .portal-links li { min-width: 0; }
 .portal-links a { display: block; padding: 16px 18px; color: var(--accent); background: #fafafe; border: 1px solid var(--border); border-radius: 8px; font-weight: 600; text-decoration: none; transition: border-color .15s ease, transform .15s ease, background .15s ease; }
 .portal-links a:hover { background: #f3f1fc; border-color: #b7b2dd; transform: translateY(-1px); }
-.empty-state strong { display: block; margin-bottom: 7px; color: #35335b; }
-.empty-state p { max-width: 540px; margin: 0 auto; color: var(--muted); font-size: 13px; }
-.notice { display: flex; gap: 11px; align-items: flex-start; margin-top: 16px; padding: 13px 15px; background: #eeecfa; border-radius: 7px; color: #4b477d; font-size: 12px; line-height: 1.5; }
-.notice strong { color: var(--accent); }
+body.portal-home .empty-state strong { display: block; margin-bottom: 7px; color: #35335b; }
+body.portal-home .empty-state p { max-width: 540px; margin: 0 auto; color: var(--muted); font-size: 13px; }
+body.portal-home .notice { display: flex; gap: 11px; align-items: flex-start; margin-top: 16px; padding: 13px 15px; background: #eeecfa; border-radius: 7px; color: #4b477d; font-size: 12px; line-height: 1.5; }
+body.portal-home .notice strong { color: var(--accent); }
 a { color: var(--accent); }
 a:hover { color: #1e185c; }
-button, input, select, textarea { font: inherit; color: #25234a; border: 1px solid #cccde2; border-radius: 6px; }
-button, input[type="submit"] { padding: 10px 15px; color: #fff; background: var(--accent); border-color: var(--accent); font-weight: 600; cursor: pointer; }
-button:hover, input[type="submit"]:hover { background: #1e185c; }
-input:not([type="submit"]), select, textarea { padding: 10px 12px; background: #fff; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th { text-align: left; color: var(--muted); background: #fafafe; text-transform: uppercase; letter-spacing: .05em; font-size: 10px; }
-th, td { padding: 12px 10px; border-bottom: 1px solid #e7e5f1; }
-footer { margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border); font-size: 12px; }
-:focus-visible { outline: 3px solid #5e54a2; outline-offset: 3px; }
+button, input, select, textarea { font-family: inherit; color: #25234a; border-color: #cccde2; }
+button, input[type="submit"] { color: #fff; background-color: var(--accent); border-color: var(--accent); font-weight: 600; cursor: pointer; }
+button:hover, input[type="submit"]:hover { background-color: #1e185c; }
+input:not([type="submit"]), select, textarea { background-color: #fff; }
+table { border-collapse: collapse; }
+th { text-align: left; color: var(--muted); background: #fafafe; text-transform: uppercase; letter-spacing: .05em; }
+th, td { border-bottom: 1px solid #e7e5f1; }
+body.portal-home footer { margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border); font-size: 12px; }
+body.portal-home :focus-visible { outline: 3px solid #5e54a2; outline-offset: 3px; }
 
 @media (max-width: 680px) {
-  main, .site-shell { width: min(100% - 22px, 1080px); margin-top: 11px; }
-  header, .site-header { padding: 20px; }
+  body.portal-home main, body.portal-home .site-shell { width: min(100% - 22px, 1080px); margin-top: 11px; }
+  body.portal-home header, body.portal-home .site-header { padding: 20px; }
   h1 { font-size: 25px; }
-  .panel, section, article { padding: 18px 15px; }
-  .panel-heading { align-items: flex-start; flex-direction: column; }
+  body.portal-home .panel, body.portal-home section, body.portal-home article { padding: 18px 15px; }
+  body.portal-home .panel-heading { align-items: flex-start; flex-direction: column; }
+}
+
+/* Il CSS di ogni pagina conserva layout e componenti; questo blocco impone solo il tema BrainLab. */
+body.brainlab-page {
+  color-scheme: light;
+  color: #25234a !important;
+  background-color: #f1f2f9 !important;
+  font-family: "Segoe UI", Arial, sans-serif !important;
+  font-size: 15px !important;
+  --accent: #312b79 !important;
+  --accent-strong: #1e185c !important;
+  --accent-soft: #eeecfa !important;
+  --ink: #04003c !important;
+  --border: #dfe1ef !important;
+  --muted: #686887 !important;
+  --surface: #fff !important;
+  --surface-soft: #fafafe !important;
+}
+body.brainlab-page h1 { color: #35335b !important; font-family: inherit !important; font-size: 29px !important; }
+body.brainlab-page h2 { color: #35335b !important; font-family: inherit !important; font-size: 19px !important; }
+body.brainlab-page h3 { color: #35335b !important; font-family: inherit !important; font-size: 16px !important; }
+body.brainlab-page p,
+body.brainlab-page li,
+body.brainlab-page label,
+body.brainlab-page button,
+body.brainlab-page input,
+body.brainlab-page select,
+body.brainlab-page textarea { font-family: inherit !important; }
+body.brainlab-page .muted,
+body.brainlab-page small,
+body.brainlab-page .panel-note,
+body.brainlab-page .section-label,
+body.brainlab-page .step-label,
+body.brainlab-page th { color: #686887 !important; }
+body.brainlab-page header { color: #fff !important; background-color: #04003c !important; }
+body.brainlab-page header h1 { color: #fff !important; }
+body.brainlab-page header .eyebrow,
+body.brainlab-page header .muted { color: #c1c2df !important; }
+body.brainlab-page .privacy { color: #e5e4ff !important; background-color: #25215b !important; border-color: #514b85 !important; }
+body.brainlab-page .panel,
+body.brainlab-page .card,
+body.brainlab-page dialog { color: #25234a !important; background-color: #fff !important; border-color: #dfe1ef !important; }
+body.brainlab-page a,
+body.brainlab-page .row-link { color: #312b79 !important; }
+body.brainlab-page button,
+body.brainlab-page input,
+body.brainlab-page select,
+body.brainlab-page textarea { color: #25234a !important; border-color: #cccde2 !important; }
+body.brainlab-page input,
+body.brainlab-page select,
+body.brainlab-page textarea { accent-color: #312b79 !important; }
+body.brainlab-page input:not([type="submit"]),
+body.brainlab-page select,
+body.brainlab-page textarea { background-color: #fff !important; }
+body.brainlab-page button { color: #312b79 !important; background-color: #fff !important; border-color: #cccde2 !important; }
+body.brainlab-page button:hover { color: #312b79 !important; background-color: #f0eefb !important; border-color: #8a82be !important; }
+body.brainlab-page button.primary,
+body.brainlab-page button.file-primary,
+body.brainlab-page .file-primary,
+body.brainlab-page .file-button,
+body.brainlab-page .primary,
+body.brainlab-page input[type="submit"] { color: #fff !important; background-color: #312b79 !important; border-color: #312b79 !important; }
+body.brainlab-page button.primary:hover,
+body.brainlab-page .file-primary:hover,
+body.brainlab-page .file-button:hover,
+body.brainlab-page .primary:hover,
+body.brainlab-page input[type="submit"]:hover { color: #fff !important; background-color: #1e185c !important; border-color: #1e185c !important; }
+body.brainlab-page :focus-visible { outline-color: #5e54a2 !important; }
+
+@media (max-width: 680px) {
+  body.brainlab-page h1 { font-size: 25px !important; }
 }

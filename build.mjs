@@ -218,6 +218,7 @@ const pageEntries = readPageLinks();
 
 const files = collectFiles(sourceDir);
 const htmlFiles = files.filter((file) => file.toLowerCase().endsWith(".html"));
+const cssFiles = files.filter((file) => file.toLowerCase().endsWith(".css"));
 const skippedFiles = files.filter((file) => file !== pagesConfig && !/\.(html|css|js|mjs)$/i.test(file));
 
 const availablePages = new Set(htmlFiles.map((file) => relative(sourceDir, file).replaceAll("\\", "/").toLowerCase()));
@@ -242,6 +243,13 @@ mkdirSync(join(outputDir, "css"), { recursive: true });
 copyFileSync(sharedCss, join(outputDir, "css", "site.css"));
 stdout.write("Copia foglio condiviso: css/site.css\n");
 
+for (const file of cssFiles) {
+  const target = join(outputDir, relative(sourceDir, file));
+  mkdirSync(dirname(target), { recursive: true });
+  copyFileSync(file, target);
+  stdout.write(`Copia CSS pagina: ${relative(sourceDir, file)}\n`);
+}
+
 if (skippedFiles.length) {
   stdout.write("\nFile ignorati (non HTML/JS):\n");
   for (const file of skippedFiles) stdout.write(`  ${relative(sourceDir, file)}\n`);
@@ -261,23 +269,46 @@ for (const file of htmlFiles) {
     }
     sourceHtml = sourceHtml.replace(marker, renderPageLinks(pageEntries));
   }
-  const htmlWithoutLocalStylesheets = sourceHtml
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, "")
-    .replace(/<link\b[^>]*>/gi, (tag) => {
+  const isPortalHome = relativePath.toLowerCase() === "index.html";
+  let htmlForEncryption = sourceHtml.replace(/<link\b[^>]*>/gi, (tag) => {
     if (!/\brel\s*=\s*["']?stylesheet\b/i.test(tag)) return tag;
     const href = tag.match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1] ?? "";
-    if (/^(?:\/css\/site\.css(?:[?#]|$))/i.test(href)) return tag;
-    return "";
-    });
-  const hasSharedCss = /href\s*=\s*["'][^"']*\/css\/site\.css(?:[?#][^"']*)?["']/i.test(htmlWithoutLocalStylesheets);
-  let htmlForEncryption = htmlWithoutLocalStylesheets;
-  if (!hasSharedCss) {
-    const link = '    <link rel="stylesheet" href="/css/site.css" />\n';
-    if (!/<\/head\s*>/i.test(sourceHtml)) {
-      throw new Error(`La pagina ${relativePath} non contiene </head>; impossibile inserire il CSS condiviso.`);
+    if (/^(?:\/css\/site\.css(?:[?#]|$))/i.test(href)) return "";
+    if (/^(?:[a-z]+:)?\/\//i.test(href) || /^data:/i.test(href)) return "";
+
+    const cssPath = href.split(/[?#]/, 1)[0];
+    let localCss;
+    try {
+      localCss = resolve(dirname(file), decodeURIComponent(cssPath));
+    } catch {
+      throw new Error(`Percorso CSS non valido in ${relativePath}: ${href}`);
     }
-    htmlForEncryption = htmlWithoutLocalStylesheets.replace(/<\/head\s*>/i, `${link}  </head>`);
+    if (!isInside(sourceDir, localCss) || !statSync(localCss, { throwIfNoEntry: false })?.isFile()) {
+      throw new Error(`Il CSS ${href} indicato in ${relativePath} non esiste nella cartella della pagina.`);
+    }
+    return tag;
+  });
+
+  htmlForEncryption = htmlForEncryption.replace(/<body\b([^>]*)>/i, (tag, attributes) => {
+    const pageClass = isPortalHome ? "portal-home" : "brainlab-page";
+    const classMatch = attributes.match(/\bclass\s*=\s*(["'])(.*?)\1/i);
+    if (classMatch) {
+      const classes = new Set(classMatch[2].split(/\s+/).filter(Boolean));
+      classes.add(pageClass);
+      return tag.replace(classMatch[0], `class=${classMatch[1]}${[...classes].join(" ")}${classMatch[1]}`);
+    }
+    return `<body${attributes} class="${pageClass}">`;
+  });
+  if (!/<body\b/i.test(htmlForEncryption)) {
+    throw new Error(`La pagina ${relativePath} non contiene <body>; impossibile applicare il tema BrainLab.`);
   }
+  if (!/<\/head\s*>/i.test(htmlForEncryption)) {
+    throw new Error(`La pagina ${relativePath} non contiene </head>; impossibile inserire il CSS condiviso.`);
+  }
+  htmlForEncryption = htmlForEncryption.replace(
+    /<\/head\s*>/i,
+    '    <link rel="stylesheet" href="/css/site.css" />\n  </head>',
+  );
 
   const inlined = inlineLocalScripts(htmlForEncryption, file);
   htmlForEncryption = inlined.html;
@@ -317,4 +348,4 @@ for (const file of htmlFiles) {
 }
 
 stdout.write(`\nSito cifrato pronto in ${relative(root, outputDir)}\\.\n`);
-stdout.write("Controlla che in `docs` ci siano solo pagine cifrate e poi pubblica quella cartella.\n");
+stdout.write("Le pagine HTML sono cifrate; i CSS condivisi e locali sono pubblici in `docs`.\n");
