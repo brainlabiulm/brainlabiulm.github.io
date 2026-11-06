@@ -1,5 +1,14 @@
-import { readdirSync, mkdirSync, rmSync, statSync, copyFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import {
+  readdirSync,
+  mkdirSync,
+  rmSync,
+  statSync,
+  copyFileSync,
+  readFileSync,
+  writeFileSync,
+  renameSync,
+} from "node:fs";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { stdin, stdout } from "node:process";
 
@@ -9,6 +18,7 @@ const outputDir = resolve(root, "docs");
 const staticryptCli = resolve(root, "node_modules", "staticrypt", "cli", "index.js");
 const configPath = resolve(root, ".staticrypt.json");
 const passwordTemplate = resolve(root, "password-template.html");
+const sharedCss = resolve(root, "assets", "site.css");
 
 function collectFiles(directory) {
   const files = [];
@@ -82,12 +92,13 @@ try {
 }
 
 const htmlFiles = files.filter((file) => file.toLowerCase().endsWith(".html"));
-const assetFiles = files.filter((file) => /\.(css|js|mjs)$/i.test(file));
+const assetFiles = files.filter((file) => /\.(js|mjs)$/i.test(file));
 const skippedFiles = files.filter((file) => !/\.(html|css|js|mjs)$/i.test(file));
 
 if (!htmlFiles.some((file) => relative(sourceDir, file).toLowerCase() === "index.html")) {
   throw new Error("La cartella `private` deve contenere `index.html`.");
 }
+if (!statSync(sharedCss).isFile()) throw new Error("Foglio di stile condiviso `assets/site.css` mancante.");
 
 const password = await hiddenInput("Password condivisa: ");
 if (password.length < 16) {
@@ -107,9 +118,12 @@ for (const file of assetFiles) {
   copyFileSync(file, target);
   stdout.write(`Copia asset pubblico: ${relativePath}\n`);
 }
+mkdirSync(join(outputDir, "css"), { recursive: true });
+copyFileSync(sharedCss, join(outputDir, "css", "site.css"));
+stdout.write("Copia foglio condiviso: css/site.css\n");
 
 if (skippedFiles.length) {
-  stdout.write("\nFile ignorati (non HTML/CSS/JS):\n");
+  stdout.write("\nFile ignorati (non HTML/JS):\n");
   for (const file of skippedFiles) stdout.write(`  ${relative(sourceDir, file)}\n`);
 }
 
@@ -119,26 +133,54 @@ for (const file of htmlFiles) {
   mkdirSync(targetDir, { recursive: true });
   stdout.write(`Cifratura: ${relativePath}\n`);
 
-  const result = spawnSync(
-    process.execPath,
-    [
-      staticryptCli,
-      file,
-      "--directory",
-      targetDir,
-      "--config",
-      configPath,
-      "--template",
-      passwordTemplate,
-    ],
-    {
-      cwd: root,
-      stdio: "inherit",
-      env: { ...process.env, STATICRYPT_PASSWORD: password },
-    },
-  );
-  if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error(`StatiCrypt non ha cifrato ${relativePath}.`);
+  const sourceHtml = readFileSync(file, "utf8");
+  const htmlWithoutLocalStylesheets = sourceHtml.replace(/<link\b[^>]*>/gi, (tag) => {
+    if (!/\brel\s*=\s*["']?stylesheet\b/i.test(tag)) return tag;
+    const href = tag.match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1] ?? "";
+    if (!href || /^(?:https?:|\/\/|data:|\/css\/site\.css(?:[?#]|$))/i.test(href)) return tag;
+    return "";
+  });
+  const hasSharedCss = /href\s*=\s*["'][^"']*\/css\/site\.css(?:[?#][^"']*)?["']/i.test(htmlWithoutLocalStylesheets);
+  let htmlForEncryption = htmlWithoutLocalStylesheets;
+  if (!hasSharedCss) {
+    const link = '    <link rel="stylesheet" href="/css/site.css" />\n';
+    if (!/<\/head\s*>/i.test(sourceHtml)) {
+      throw new Error(`La pagina ${relativePath} non contiene </head>; impossibile inserire il CSS condiviso.`);
+    }
+    htmlForEncryption = sourceHtml.replace(/<\/head\s*>/i, `${link}  </head>`);
+  }
+
+  const temporarySource = join(dirname(file), `.build-${process.pid}-${basename(file)}`);
+  const temporaryOutput = join(targetDir, basename(temporarySource));
+  const finalOutput = join(targetDir, basename(file));
+  writeFileSync(temporarySource, htmlForEncryption, "utf8");
+
+  try {
+    const result = spawnSync(
+      process.execPath,
+      [
+        staticryptCli,
+        temporarySource,
+        "--directory",
+        targetDir,
+        "--config",
+        configPath,
+        "--template",
+        passwordTemplate,
+      ],
+      {
+        cwd: root,
+        stdio: "inherit",
+        env: { ...process.env, STATICRYPT_PASSWORD: password },
+      },
+    );
+    if (result.error) throw result.error;
+    if (result.status !== 0) throw new Error(`StatiCrypt non ha cifrato ${relativePath}.`);
+    renameSync(temporaryOutput, finalOutput);
+  } finally {
+    rmSync(temporarySource, { force: true });
+    rmSync(temporaryOutput, { force: true });
+  }
 }
 
 stdout.write(`\nSito cifrato pronto in ${relative(root, outputDir)}\\.\n`);
