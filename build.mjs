@@ -10,12 +10,12 @@ const staticryptCli = resolve(root, "node_modules", "staticrypt", "cli", "index.
 const configPath = resolve(root, ".staticrypt.json");
 const passwordTemplate = resolve(root, "password-template.html");
 
-function collectHtml(directory) {
+function collectFiles(directory) {
   const files = [];
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const absolute = join(directory, entry.name);
-    if (entry.isDirectory()) files.push(...collectHtml(absolute));
-    else if (entry.isFile() && entry.name.toLowerCase().endsWith(".html")) files.push(absolute);
+    if (entry.isDirectory()) files.push(...collectFiles(absolute));
+    else if (entry.isFile()) files.push(absolute);
   }
   return files;
 }
@@ -76,12 +76,16 @@ if (!statSync(resolve(root, "package.json")).isFile()) {
 
 let files;
 try {
-  files = collectHtml(sourceDir);
+  files = collectFiles(sourceDir);
 } catch {
   throw new Error("Cartella `private` mancante. Crea `private/index.html` prima di generare il sito.");
 }
 
-if (!files.some((file) => relative(sourceDir, file).toLowerCase() === "index.html")) {
+const htmlFiles = files.filter((file) => file.toLowerCase().endsWith(".html"));
+const assetFiles = files.filter((file) => /\.(css|js|mjs)$/i.test(file));
+const skippedFiles = files.filter((file) => !/\.(html|css|js|mjs)$/i.test(file));
+
+if (!htmlFiles.some((file) => relative(sourceDir, file).toLowerCase() === "index.html")) {
   throw new Error("La cartella `private` deve contenere `index.html`.");
 }
 
@@ -96,7 +100,20 @@ rmSync(outputDir, { recursive: true, force: true });
 mkdirSync(outputDir, { recursive: true });
 copyFileSync(resolve(root, ".nojekyll"), join(outputDir, ".nojekyll"));
 
-for (const file of files) {
+for (const file of assetFiles) {
+  const relativePath = relative(sourceDir, file);
+  const target = join(outputDir, relativePath);
+  mkdirSync(dirname(target), { recursive: true });
+  copyFileSync(file, target);
+  stdout.write(`Copia asset pubblico: ${relativePath}\n`);
+}
+
+if (skippedFiles.length) {
+  stdout.write("\nFile ignorati (non HTML/CSS/JS):\n");
+  for (const file of skippedFiles) stdout.write(`  ${relative(sourceDir, file)}\n`);
+}
+
+for (const file of htmlFiles) {
   const relativePath = relative(sourceDir, file);
   const targetDir = join(outputDir, dirname(relativePath));
   mkdirSync(targetDir, { recursive: true });

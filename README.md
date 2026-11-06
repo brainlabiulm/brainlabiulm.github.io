@@ -21,7 +21,9 @@ npm run build
 
 Lo script chiede la password due volte senza mostrarla, controlla che sia lunga almeno 16 caratteri e genera le pagine cifrate in `docs/`. Puoi accedere una volta e usare “Ricordami” per aprire le altre pagine dello stesso sito senza reinserirla a ogni click.
 
-Per aggiungere pagine, crea file `.html` dentro `private/` e inserisci i relativi link nell'elenco di `private/index.html`. Mantieni i collegamenti relativi, per esempio `pages/analisi.html`. Le pagine possono usare CSS e JavaScript incorporati nel file HTML.
+Per aggiungere pagine, copia i file `.html` dentro `private/` mantenendo la struttura delle sottocartelle e inserisci i relativi link nell'elenco di `private/index.html`. Mantieni i collegamenti relativi, per esempio `pages/analisi.html`; il percorso equivalente sarà disponibile nel sito dopo la cifratura.
+
+I file `.css`, `.js` e `.mjs` vengono copiati in `docs/` accanto alle pagine e restano pubblici. Non inserirvi password, chiavi API, dati personali o testo che deve restare riservato. La generazione cifra ogni pagina HTML, ma ignora gli altri formati (PDF, immagini, JSON e così via) per non pubblicarli per errore. Gli eventuali riferimenti a file ignorati non funzioneranno finché non saranno gestiti in modo esplicito.
 
 ## Pubblicazione su GitHub Pages
 
