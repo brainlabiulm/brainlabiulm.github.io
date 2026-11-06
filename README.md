@@ -19,7 +19,7 @@ npm install
 npm run build
 ```
 
-Su Windows puoi avviare `build-site.cmd` con un doppio clic: installa le dipendenze se mancano e lancia il build. Non scarica pagine da GitHub e non pubblica automaticamente; al termine le pagine cifrate si trovano in `docs/`.
+Su Windows puoi avviare `build-site.cmd` con un doppio clic: installa le dipendenze se mancano, lancia il build e, se riesce, pubblica automaticamente i file generati su `origin/main`. Se `docs/` non è cambiata, non crea un commit vuoto. Lo script richiede Git installato e configurato per accedere alla repository. Non scarica pagine da GitHub; le pagine cifrate si trovano in `docs/`.
 
 Lo script chiede la password due volte senza mostrarla, controlla che sia lunga almeno 16 caratteri e genera le pagine cifrate in `docs/`. Puoi accedere una volta e usare “Ricordami” per aprire le altre pagine dello stesso sito senza reinserirla a ogni click.
 
@@ -47,8 +47,8 @@ Gli script locali `.js` e `.mjs` referenziati nell'HTML vengono incorporati nell
 
 ## Pubblicazione su GitHub Pages
 
-1. Esegui `npm run build` e controlla che `docs/` contenga solo pagine cifrate.
-2. Aggiungi e carica la cartella `docs/` cifrata e i file di progetto; non caricare mai `private/`.
+1. Avvia `build-site.cmd` su Windows; il build cifra le pagine e fa commit e push di `docs/` e `.staticrypt.json` su `main`.
+2. Non caricare mai `private/` nella repository pubblica.
 3. In GitHub apri **Settings → Pages**, scegli **Deploy from a branch**, seleziona `main` e la cartella `/docs`.
 4. Dopo la pubblicazione, visita `https://brainlabiulm.github.io/` e prova la password prima di condividere il link.
 

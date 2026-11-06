@@ -28,8 +28,28 @@ echo Avvio del build BrainLab...
 if errorlevel 1 goto :failed
 
 echo.
-echo Build completato. Le pagine cifrate sono nella cartella docs.
-echo Per pubblicarle, carica la cartella docs nel repository GitHub.
+echo Pubblicazione dei file generati su GitHub...
+for /f "delims=" %%B in ('git branch --show-current') do set "CURRENT_BRANCH=%%B"
+if not "%CURRENT_BRANCH%"=="main" (
+  echo Errore: il branch corrente e' "%CURRENT_BRANCH%". Passa al branch main prima di pubblicare.
+  goto :failed
+)
+
+git add -- docs .staticrypt.json
+if errorlevel 1 goto :failed
+
+git diff --cached --quiet -- docs .staticrypt.json
+if not errorlevel 1 goto :published
+
+git commit --only -m "Pubblica sito BrainLab" -- docs .staticrypt.json
+if errorlevel 1 goto :failed
+
+git push origin main
+if errorlevel 1 goto :failed
+
+:published
+echo.
+echo Build e pubblicazione completati. Le pagine cifrate sono nella cartella docs.
 echo.
 pause
 exit /b 0
