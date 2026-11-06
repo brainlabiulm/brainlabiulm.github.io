@@ -1,0 +1,83 @@
+:root {
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: #25234a;
+  background: #f1f2f9;
+  --accent: #312b79;
+  --ink: #04003c;
+  --border: #dfe1ef;
+  --muted: #686887;
+}
+
+* { box-sizing: border-box; }
+body { min-height: 100vh; margin: 0; }
+main, .site-shell { width: min(100% - 32px, 1080px); margin: 28px auto 48px; }
+header, .site-header {
+  position: relative;
+  padding: 25px 30px;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 10px;
+}
+.eyebrow, .section-label {
+  color: #c1c2df;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  font-size: 11px;
+  font-weight: 800;
+}
+.brand-line { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.brand-mark { width: 34px; height: 34px; flex: none; }
+h1 { margin: 0; font-size: 29px; font-weight: 600; letter-spacing: -.03em; }
+header p, .site-header p { margin: 7px 0 0; color: #c1c2df; line-height: 1.5; }
+.access-badge {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 8px 12px;
+  color: #e5e4ff;
+  background: #25215b;
+  border: 1px solid #514b85;
+  border-radius: 12px;
+  font-size: 12px;
+}
+.panel, section, article {
+  margin-top: 18px;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.panel-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.section-label { margin: 0 0 7px; color: var(--muted); letter-spacing: .1em; }
+h2 { margin: 0; color: #35335b; font-size: 19px; font-weight: 600; }
+h3 { color: #35335b; font-size: 16px; }
+p, li { line-height: 1.6; }
+.muted, small, footer { color: var(--muted); }
+.empty-state { padding: 30px 20px; text-align: center; background: #fafafe; border: 1px dashed #d7d5e8; border-radius: 8px; }
+.portal-empty { margin: 0; padding: 18px; color: var(--muted); background: #fafafe; border: 1px dashed #d7d5e8; border-radius: 8px; }
+.portal-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.portal-links li { min-width: 0; }
+.portal-links a { display: block; padding: 16px 18px; color: var(--accent); background: #fafafe; border: 1px solid var(--border); border-radius: 8px; font-weight: 600; text-decoration: none; transition: border-color .15s ease, transform .15s ease, background .15s ease; }
+.portal-links a:hover { background: #f3f1fc; border-color: #b7b2dd; transform: translateY(-1px); }
+.empty-state strong { display: block; margin-bottom: 7px; color: #35335b; }
+.empty-state p { max-width: 540px; margin: 0 auto; color: var(--muted); font-size: 13px; }
+.notice { display: flex; gap: 11px; align-items: flex-start; margin-top: 16px; padding: 13px 15px; background: #eeecfa; border-radius: 7px; color: #4b477d; font-size: 12px; line-height: 1.5; }
+.notice strong { color: var(--accent); }
+a { color: var(--accent); }
+a:hover { color: #1e185c; }
+button, input, select, textarea { font: inherit; color: #25234a; border: 1px solid #cccde2; border-radius: 6px; }
+button, input[type="submit"] { padding: 10px 15px; color: #fff; background: var(--accent); border-color: var(--accent); font-weight: 600; cursor: pointer; }
+button:hover, input[type="submit"]:hover { background: #1e185c; }
+input:not([type="submit"]), select, textarea { padding: 10px 12px; background: #fff; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; color: var(--muted); background: #fafafe; text-transform: uppercase; letter-spacing: .05em; font-size: 10px; }
+th, td { padding: 12px 10px; border-bottom: 1px solid #e7e5f1; }
+footer { margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border); font-size: 12px; }
+:focus-visible { outline: 3px solid #5e54a2; outline-offset: 3px; }
+
+@media (max-width: 680px) {
+  main, .site-shell { width: min(100% - 22px, 1080px); margin-top: 11px; }
+  header, .site-header { padding: 20px; }
+  h1 { font-size: 25px; }
+  .panel, section, article { padding: 18px 15px; }
+  .panel-heading { align-items: flex-start; flex-direction: column; }
+}
