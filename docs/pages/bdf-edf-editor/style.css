@@ -116,3 +116,16 @@
   :is(body.header-editor, body:has(> main #editor)) #count { flex-basis: 100%; text-align: center; }
   :is(body.header-editor, body:has(> main #editor)) .stat { padding: 14px; }
 }
+
+/* Progress dialog stays above the save review while disk I/O is in flight. */
+:is(body.header-editor, body:has(> main #editor)) #waitDialog { width: min(540px, calc(100% - 32px)); }
+:is(body.header-editor, body:has(> main #editor)) .wait-heading { display: flex; align-items: center; gap: 14px; }
+:is(body.header-editor, body:has(> main #editor)) .wait-heading h2 { margin: 0; }
+:is(body.header-editor, body:has(> main #editor)) .wait-spinner { width: 26px; height: 26px; flex: none; border: 3px solid #dfe1ef; border-top-color: #312b79; border-radius: 50%; animation: editor-wait-spin .8s linear infinite; }
+:is(body.header-editor, body:has(> main #editor)) #waitProgress { display: block; width: 100%; height: 14px; margin: 16px 0; accent-color: #312b79; }
+:is(body.header-editor, body:has(> main #editor)) #waitMessage { overflow-wrap: anywhere; margin-top: 16px; }
+:is(body.header-editor, body:has(> main #editor)) :is(#waitCount, .wait-note) { font-size: 12px; }
+@keyframes editor-wait-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+ :is(body.header-editor, body:has(> main #editor)) .wait-spinner { animation: none; }
+}
