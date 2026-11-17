@@ -10,6 +10,8 @@ Non rimuovere `private/` da `.gitignore` e non aggiungere pagine in chiaro alla 
 
 Questa soluzione usa una sola password condivisa: non identifica i singoli visitatori e non consente di revocare l'accesso a una persona senza cambiare la password per tutti. Non usarla per dati clinici, personali o altrimenti sensibili. Le pagine HTML vengono cifrate; eventuali PDF, immagini, fogli di stile o altri file aggiunti separatamente non sono cifrati da questo progetto e non vanno pubblicati se riservati.
 
+Il browser decifra l'HTML e i JavaScript incorporati. Chi conosce la password può quindi ispezionarli, salvarli e copiarli. I file cifrati sono pubblici e una password debole può essere sottoposta a tentativi offline. Per tutelare il codice proprietario, tieni i sorgenti in un repository privato e sposta sul server la logica che non vuoi distribuire; usa account individuali se devi poter revocare l'accesso.
+
 ## Preparazione e generazione
 
 Richiede Node.js 16 o successivo. Nella cartella del progetto:
@@ -21,7 +23,7 @@ npm run build
 
 Su Windows puoi avviare `build-site.cmd` con un doppio clic: installa le dipendenze se mancano, lancia il build e, se riesce, pubblica automaticamente i file generati su `origin/main`. Se `docs/` non è cambiata, non crea un commit vuoto. Lo script richiede Git installato e configurato per accedere alla repository. Non scarica pagine da GitHub; le pagine cifrate si trovano in `docs/`.
 
-Lo script chiede la password due volte senza mostrarla, controlla che sia lunga almeno 16 caratteri e genera le pagine cifrate in `docs/`. Puoi accedere una volta e usare “Ricordami” per aprire le altre pagine dello stesso sito senza reinserirla a ogni click.
+Lo script chiede la password e la sua conferma senza mostrarle, controlla che sia lunga almeno 16 caratteri e genera le pagine cifrate in `docs/`. Sul sito, basta inserire la password una volta per navigare tra le pagine nella stessa scheda: il browser conserva la chiave derivata solo per quella sessione. Una nuova scheda aperta direttamente richiede la password. Se il browser blocca la memoria di sessione, ogni pagina si può comunque aprire inserendo la password.
 
 Le pagine sono organizzate in `private/pages/<nome-cartella>/`; il catalogo è `private/pages/pages.json` (puoi partire da `pages.example.json`). Per esempio:
 
@@ -41,7 +43,7 @@ Metti l'HTML e i suoi JavaScript nella cartella della pagina, conservando le sot
 
 Il foglio comune è `assets/site.css`: il builder lo collega dopo i CSS locali, così i colori, i caratteri e la scala tipografica BrainLab hanno la precedenza. Layout, griglie, spaziature e componenti restano invece definiti dal CSS di ciascuna pagina. I fogli CSS locali collegati nell'HTML vengono copiati in `docs/` mantenendo le sottocartelle. I CSS pubblicati sono visibili a tutti: non inserirvi informazioni riservate.
 
-Gli script locali `.js` e `.mjs` referenziati nell'HTML vengono incorporati nella pagina prima della cifratura, quindi non vengono pubblicati come file separati. Gli script remoti restano remoti. I moduli JavaScript con import locali devono essere uniti in un singolo file prima del build. Gli altri file (PDF, immagini, JSON e così via) non vengono copiati automaticamente.
+Gli script locali `.js` e `.mjs` referenziati nell'HTML vengono incorporati nella pagina prima della cifratura, quindi non vengono pubblicati come file separati. Gli script remoti restano remoti. I moduli JavaScript con import locali devono essere uniti in un singolo file prima del build. I video MP4 vengono copiati in `docs/` mantenendo le sottocartelle; sono pubblici e vanno usati solo per contenuti dimostrativi. Gli altri file (PDF, immagini, JSON, XLSX e così via) non vengono copiati automaticamente.
 
 ## Pubblicazione su GitHub Pages
 

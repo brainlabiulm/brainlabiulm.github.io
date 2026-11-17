@@ -219,7 +219,10 @@ const pageEntries = readPageLinks();
 const files = collectFiles(sourceDir);
 const htmlFiles = files.filter((file) => file.toLowerCase().endsWith(".html"));
 const cssFiles = files.filter((file) => file.toLowerCase().endsWith(".css"));
-const skippedFiles = files.filter((file) => file !== pagesConfig && !/\.(html|css|js|mjs)$/i.test(file));
+const videoFiles = files.filter((file) => /\.mp4$/i.test(file));
+const sheetJsLicense = resolve(pagesRoot, "metrics-viewer", "js", "vendor", "LICENSE.sheetjs.txt");
+const skippedFiles = files.filter((file) =>
+  file !== pagesConfig && file !== sheetJsLicense && !/\.(html|css|js|mjs|mp4)$/i.test(file));
 
 const availablePages = new Set(htmlFiles.map((file) => relative(sourceDir, file).replaceAll("\\", "/").toLowerCase()));
 for (const entry of pageEntries) {
@@ -248,6 +251,19 @@ for (const file of cssFiles) {
   mkdirSync(dirname(target), { recursive: true });
   copyFileSync(file, target);
   stdout.write(`Copia CSS pagina: ${relative(sourceDir, file)}\n`);
+}
+
+for (const file of videoFiles) {
+  const target = join(outputDir, relative(sourceDir, file));
+  mkdirSync(dirname(target), { recursive: true });
+  copyFileSync(file, target);
+  stdout.write(`Copia video: ${relative(sourceDir, file)}\n`);
+}
+
+if (files.includes(sheetJsLicense)) {
+  const target = join(outputDir, relative(sourceDir, sheetJsLicense));
+  mkdirSync(dirname(target), { recursive: true });
+  copyFileSync(sheetJsLicense, target);
 }
 
 if (skippedFiles.length) {
@@ -331,6 +347,8 @@ for (const file of htmlFiles) {
         configPath,
         "--template",
         passwordTemplate,
+        "--remember",
+        "false",
       ],
       {
         cwd: root,
