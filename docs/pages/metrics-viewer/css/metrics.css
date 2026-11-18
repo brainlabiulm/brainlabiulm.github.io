@@ -2642,3 +2642,43 @@ align-content: start; padding: 16px; border: 1px solid #e7e5f1; border-radius: 1
 .stats-tab-actions { display: inline-flex; align-items: stretch; gap: 2px; }
 .subtabs .stats-tab-options { min-width: 32px; padding: 0 7px; font-size: 1.4rem; line-height: 1; color: var(--accent); }
 .subtabs .stats-tab-options:hover { background: var(--surface); }
+
+#viewerGroupNames { display: grid; gap: 8px; margin-bottom: 10px; }
+.viewer-group-name, .viewer-group-subject { display: grid; grid-template-columns: minmax(0, 1fr) minmax(110px, 45%); align-items: center; gap: 8px; }
+.viewer-group-name { grid-template-columns: minmax(0, 1fr) auto; }
+.viewer-group-name input { width: 100%; min-width: 0; }
+#viewerGroupSubjects { display: grid; gap: 6px; max-height: 40dvh; overflow: auto; }
+#viewerGroupsDialog { width: min(640px, calc(100vw - 24px)); }
+#viewerQuickGroups { margin-block: 8px; flex-wrap: wrap; }
+.moments-dock:has(.moment-pip-group) { display: flex; flex-direction: column; block-size: auto; max-block-size: 48%; }
+.moment-pip-group { display: grid; grid-template-columns: minmax(0, 1fr); flex: none; align-items: stretch; gap: 6px; min-width: 0; }
+.moment-pip-group__heading { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; padding-inline: 2px; }
+.moment-pip-group__heading::after { content: ''; flex: 1 1 30px; height: 1px; background: var(--border); margin-inline-start: 4px; }
+.moment-pip-group__heading h3 { margin: 0; font-size: var(--text-control); font-weight: 600; overflow-wrap: anywhere; }
+.moment-pip-group__count { color: var(--muted); font-size: var(--text-small); }
+.moment-pip-group__symbol { width: 10px; height: 10px; flex: 0 0 10px; border-radius: 50%; background: var(--group-color, var(--accent)); }
+.moment-pip-group__symbol[data-shape=square] { border-radius: 2px; }
+.moment-pip-group__symbol[data-shape=triangle] { border-radius: 0; clip-path: polygon(50% 0,100% 100%,0 100%); }
+.moment-pip-group__symbol[data-shape=diamond] { border-radius: 0; clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%); }
+.moment-pip-group__symbol[data-shape=hexagon] { border-radius: 0; clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); }
+.moment-pip-group__items { display: grid; grid-auto-flow: column; grid-auto-columns: clamp(170px, 25vw, 260px); grid-template-rows: minmax(0, 1fr); gap: 8px; overflow-x: auto; padding: 2px 2px 6px; }
+.moment-pip-group .moment-pip { height: 145px; min-height: 0; }
+
+.moment-pip__number[data-shape=square] { border-radius: 3px; }
+.moment-pip__number[data-shape=triangle] { border-radius: 0; clip-path: polygon(50% 0, 100% 100%, 0 100%); padding-top: 5px; }
+.moment-pip__number[data-shape=diamond] { border-radius: 0; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.moment-pip__number[data-shape=hexagon] { border-radius: 0; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
+
+.subject-group-button { min-height: 24px; padding: 2px 7px; border: 1px solid var(--border); border-radius: 5px; background: var(--accent-soft); color: var(--accent); font-size: var(--text-small); line-height: 1.4; }
+.subject-group-button:hover, .subject-group-button[aria-expanded=true] { border-color: var(--accent); background: var(--surface); }
+.subject-group-menu { position: fixed; inset: auto; margin: 0; width: max-content; min-width: 205px; max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); overflow: auto; padding: 8px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: #25234a; box-shadow: 0 8px 30px rgb(37 35 74 / 18%); }
+.subject-group-menu > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 0 6px 4px; }
+.subject-group-menu h3 { margin: 0; font-size: var(--text-control); }
+.subject-group-menu > header button { min-height: 28px; padding: 2px 7px; }
+.subject-group-menu [role=menuitemradio] { display: block; width: 100%; padding: 7px 10px; border: 0; text-align: left; background: transparent; font-size: var(--text-control); }
+.subject-group-menu [aria-checked=true], .subject-group-menu [role=menuitemradio]:hover { background: var(--accent-soft); color: var(--accent); }
+.subject-group-menu__manage { width: 100%; margin-top: 6px; }
+.subject-group-menu .danger:empty { display: none; }
+
+.subject-row:has(.subject-epoch-chips) > .subject-group-button { opacity: 1; justify-self: start; }
+.subject-group-menu [role=menuitemradio] { overflow-wrap: anywhere; white-space: normal; }
