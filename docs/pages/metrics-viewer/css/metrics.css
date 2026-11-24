@@ -2682,3 +2682,40 @@ align-content: start; padding: 16px; border: 1px solid #e7e5f1; border-radius: 1
 
 .subject-row:has(.subject-epoch-chips) > .subject-group-button { opacity: 1; justify-self: start; }
 .subject-group-menu [role=menuitemradio] { overflow-wrap: anywhere; white-space: normal; }
+
+
+/* Keep outlier provenance and state visible above generic button styles. */
+.subject-row button.subject-epoch-chip.is-outlier,
+.subject-row button.outlier-badge.outlier-flagged {
+  color: #684600;
+  background: #fff2cd;
+  border-color: #e6c66b;
+}
+.subject-row button.outlier-badge.outlier-within {
+  color: #236449;
+  background: #edf7f2;
+  border-color: #c9e2d7;
+}
+.subject-row .outlier-source {
+  margin-inline-start: 3px;
+  font-size: .7em;
+  line-height: 0;
+  vertical-align: super;
+  font-weight: 700;
+}
+
+.metrics-chart .chart-sample-summary { font-size: 11px; fill: var(--muted); }
+.metrics-chart [data-excluded-preview] { stroke-dasharray: 4 3; }
+.metrics-chart [data-excluded-preview] circle { stroke: #8a5900; stroke-width: 1.5px; fill: #fff2cd; }
+
+.metrics-chart .chart-sample-title { font-size: 12px; font-weight: 600; fill: var(--accent); }
+.subject-row .subject-epoch-chip.outlier-badge { white-space: normal; font-weight: 400; justify-content: flex-start; }
+
+.baseline-map-row { display:grid;grid-template-columns:minmax(100px,1fr) minmax(130px,1fr);gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border); }
+.baseline-map-row span { overflow-wrap:anywhere; }
+#baselineEpochControl > button { margin-top:5px; }
+
+.factor-toolbar { display:flex;flex-wrap:wrap;align-items:end;gap:10px;margin-bottom:12px; }
+.factor-toolbar label { flex:1 1 150px;min-width:0; }
+.subject-factor-heading { display:block;padding:8px 10px 4px;color:var(--muted);font-size:var(--text-small); }
+#betweenFactorsControl { margin:10px 0;border:1px solid var(--border);border-radius:8px;padding:12px; }
