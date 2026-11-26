@@ -2521,7 +2521,6 @@ align-content: start; padding: 16px; border: 1px solid #e7e5f1; border-radius: 1
 #quickFactorControl { display: inline-flex; gap: 5px; align-items: center; }
 #eyeOptions summary { font-size: var(--text-small); }
 #eyeOptions[open] #etKindControl { margin-block: 4px; }
-#videoEmpty button { margin-block: 4px; }
 #openWorkspaceOptions { margin-inline-start: auto; }
 @media (min-width: 781px) {
   .workspace-mode-row { width: auto; }
@@ -2761,7 +2760,7 @@ align-content: start; padding: 16px; border: 1px solid #e7e5f1; border-radius: 1
 .metrics-layout[data-side="false"] > :is(#workspaceSidebar, #workspaceDivider),
 .metrics-layout[data-left="false"] > :is(.workspace-primary, #workspaceDivider),
 .metrics-layout[data-chart="false"] #workspacePlots,
-#workspaceSidebar:has(#subjectPanel.panel-closed) > #videoDivider,
+#workspaceSidebar:has(#subjectPanel:is([hidden], .panel-closed)) > #videoDivider,
 #videoCard.panel-closed + #videoDivider,
 .metrics-layout[data-empty] {
   display: none !important;
@@ -2773,7 +2772,7 @@ align-content: start; padding: 16px; border: 1px solid #e7e5f1; border-radius: 1
 @media (min-width: 781px) {
   .metrics-layout:is([data-side="false"], [data-left="false"]) { grid-template-columns: minmax(0, 1fr); }
   .metrics-layout[data-left="false"] > #workspaceSidebar { grid-column: 1; }
-  #workspaceSidebar:has(#subjectPanel.panel-closed) #videoCard :is(#stimulusVideo, .static-stimulus) {
+  #workspaceSidebar:has(#subjectPanel:is([hidden], .panel-closed)) #videoCard :is(#stimulusVideo, .static-stimulus) {
     --workspace-video-height: var(--solo-video-height, var(--workspace-auto-video-height));
   }
 }
