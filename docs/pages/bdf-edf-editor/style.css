@@ -113,7 +113,6 @@
   :is(body.header-editor, body:has(> main #editor)) .badge { max-width: 100%; }
   :is(body.header-editor, body:has(> main #editor)) .toolbar { align-items: stretch; }
   :is(body.header-editor, body:has(> main #editor)) .toolbar button { flex: 1 1 45%; }
-  :is(body.header-editor, body:has(> main #editor)) #count { flex-basis: 100%; text-align: center; }
   :is(body.header-editor, body:has(> main #editor)) .stat { padding: 14px; }
 }
 
